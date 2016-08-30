@@ -38,18 +38,58 @@ Cat.prototype.init = function () {
 
   if (this.sprite == 'elvis') {
     this.moving = true;
+    this.checkWorldBounds = true;
+    this.outOfBoundsKill = true;
     this.body.velocity.x = -200;
   }
 }
 
-Cat.prototype.move = function () {
-  if (this.x < 50) {
-    this.body.velocity.x = 200;
-    this.facing = 'right';
-  } else if (this.x > 400) {
-    this.body.velocity.x = -200;
-    this.facing = 'left';
-  } 
+Cat.prototype.move = function (cursors) {
+  if (cursors) {
+    this.body.velocity.x = 0;
+    this.body.velocity.y = 0;
+    this.moving = false;
+
+    if (cursors.left.isDown) {
+      this.body.velocity.x = -(this.speed);
+      this.facing = 'left';
+      this.moving = true;
+    }
+
+    if (cursors.right.isDown) {
+      this.body.velocity.x = this.speed;
+      this.facing = 'right';
+      this.moving = true;  
+    }
+
+    if (cursors.up.isDown) {
+      this.body.velocity.y = -(this.speed);
+      this.facing = 'up';
+      this.moving = true;
+    }
+
+    if (cursors.down.isDown) {
+      this.body.velocity.y = this.speed;
+      this.facing = 'down';
+      this.moving = true;
+    }
+  }
+  
+  if (this.target) {
+    game.physics.arcade.moveToObject(this, this.target)
+  }
+
+  // if (this.x < 50) {
+  //   this.body.velocity.x = 200;
+  //   this.facing = 'right';
+  // } else if (this.x > 400) {
+  //   this.body.velocity.x = -200;
+  //   this.facing = 'left';
+  // } 
+}
+
+Cat.prototype.setTarget = function(cat) {
+  this.target = cat;
 }
 
 Cat.prototype.animate = function () {

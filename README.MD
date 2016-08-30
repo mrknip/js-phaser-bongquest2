@@ -8,5 +8,5 @@ Currently it's a top-down Zelda ripoff starring Bongs, with Elvis from over the 
 Files need serving, use `python -m SimpleHTTPServer` or similar
 
 #### Controls
-Cursors: move Bongs!
+Cursors: move Bongs!  
 CTRL:    see Bongs shoot fire!

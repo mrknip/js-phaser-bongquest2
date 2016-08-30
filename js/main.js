@@ -7,11 +7,12 @@ var MainState = function (game) {
   this.layer;
 
   this.bulletDelaySet = false;
+  this.spawnDue = true;
 };
 
 MainState.prototype = {
   preload: function() {
-    game.load.tilemap('test', 'assets/tiles/test2.json', null, Phaser.Tilemap.TILED_JSON);
+    game.load.tilemap('test', 'assets/tiles/triggertest.json', null, Phaser.Tilemap.TILED_JSON);
 
     game.load.image('tiles', 'assets/img/grassy.png');
 
@@ -23,26 +24,46 @@ MainState.prototype = {
   create: function() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
 
-    this.map = game.add.tilemap('test');
-    this.map.addTilesetImage('grassy', 'tiles');
-    this.layer = this.map.createLayer('Tile Layer 1');
-    this.layer.resizeWorld();
-
-    this.water = this.map.createLayer('underwater');
-    
-    this.map.setTileIndexCallback(16, this.inWater, this, this.water);
-    this.map.setCollision([2,3, 5,7,8,10,12,13], true, this.layer);
-
-    this.cat = this.addCat(game, 256, 256, 'bongo');
+    this.loadLevel('test');
+  
+    this.cat = this.addCat(game, 64, 160, 'bongo');
     this.elvis = this.addCat(game, 256, 288, 'elvis');
 
-    game.camera.follow(this.cat);
-
+    // Entities
     this.bulletGroup = game.add.group();
-    this.bulletGroup.enableBody = true;
+    this.enemiesGroup = game.add.group();
+    this.enemiesGroup.add(this.elvis);
 
+    // Controls
     this.cursors = game.input.keyboard.createCursorKeys();
     this.shootButton = game.input.keyboard.addKey(Phaser.Keyboard.CONTROL);
+    
+    game.camera.follow(this.cat);
+  },
+
+  loadLevel: function(level) {
+    this.map = game.add.tilemap(level);
+    this.map.addTilesetImage('grassy', 'tiles');
+    this.layer = this.map.createLayer('background');
+    this.layer.resizeWorld();
+
+    this.collisionLayer = this.map.createLayer('collisionLayer');
+    this.map.setCollisionBetween(1,20,true, this.collisionLayer);
+    // this.map.setTileIndexCallback(16, this.inWater, this, this.water);
+    // this.map.setCollision([2,3, 5,7,8,10,12,13], true, this.layer);
+
+    this.map.setTileLocationCallback(8, 4, 2, 3, this.spawnWave, this, this.collisionLayer);
+  },
+
+  spawnWave: function() {
+    console.log('triggered');
+    if (this.waveOneComplete) return;
+    for (var i = 0; i < 5; i++) {
+      var elvis = this.addCat(game, 640, game.rnd.integerInRange(128, 256), 'elvis');
+      elvis.setTarget(this.cat);
+      this.enemiesGroup.add(elvis);
+    }
+    this.waveOneComplete = true;
   },
 
   addCat: function(game, x,y, sprite) {
@@ -52,56 +73,36 @@ MainState.prototype = {
   },
 
   update: function() {
-    game.physics.arcade.collide(this.cat, this.layer, this.collideCat);
-    game.physics.arcade.collide(this.bulletGroup, this.elvis, this.onBulletHit);
-    game.physics.arcade.collide(this.bulletGroup, this.layer, this.onBulletHit);
+    game.physics.arcade.collide(this.cat, this.collisionLayer);
+    game.physics.arcade.collide(this.enemiesGroup, this.collisionLayer);
+    game.physics.arcade.collide(this.bulletGroup, this.enemiesGroup, this.onBulletHit);
+    game.physics.arcade.collide(this.bulletGroup, this.collisionLayer, this.onBulletHit);
 
-    
-    this.cat.body.velocity.x = 0;
-    this.cat.body.velocity.y = 0;
+    // Move AI
 
-    if (this.cursors.left.isDown) {
-      this.cat.body.velocity.x = -(this.cat.speed);
-      this.cat.facing = 'left';
-      this.cat.moving = true;
-    }
+    this.enemiesGroup.callAll('move');
+    this.enemiesGroup.callAll('animate');
 
-    if (this.cursors.right.isDown) {
-      this.cat.body.velocity.x = this.cat.speed;
-      this.cat.facing = 'right';
-      this.cat.moving = true;  
-    }
-
-    if (this.cursors.up.isDown) {
-      this.cat.body.velocity.y = -(this.cat.speed);
-      this.cat.facing = 'up';
-      this.cat.moving = true;
-    }
-
-    if (this.cursors.down.isDown) {
-      this.cat.body.velocity.y = this.cat.speed;
-      this.cat.facing = 'down';
-      this.cat.moving = true;
-    }
-
-    if (!this.cursors.left.isDown &&
-        !this.cursors.right.isDown &&
-        !this.cursors.up.isDown &&
-        !this.cursors.down.isDown
-      ) {
-      this.cat.moving = false;
-    }
-
-    this.elvis.move();
-    this.elvis.animate();
+    // Move Player
+    this.cat.move(this.cursors);
     this.cat.animate();
 
-    
+    if (this.shootButton.isDown) { this.shoot(); }
 
-    if (this.shootButton.isDown) { 
-      this.shoot();
-    }
+    // Spawn enemies
+    // if (this.enemiesGroup.countLiving() < 5 && this.spawnDue) {
+    //   this.spawnDue = false;
+    //   var elvis = this.addCat(game, 640, game.rnd.integerInRange(200, 400), 'elvis');
+    //   elvis.setTarget(this.cat);
+    //   this.enemiesGroup.add(elvis);
 
+    //   setTimeout(function(){
+    //     this.spawnDue = true;
+    //   }.bind(this), 1000);
+    // }
+
+
+    // My submerging hack
     this.cat.underwater = false;
     game.physics.arcade.collide(this.cat, this.water);
     if (this.cat.underwater) {
@@ -121,8 +122,7 @@ MainState.prototype = {
     if (this.bulletGroup.countLiving() > 50) { return; }
 
     if (this.bulletDelaySet == false) {
-      var bullet = this._addBullet(this, this.cat);
-      this._setBulletVelocity(bullet, this.cat);  
+      var bullet = this.addBullet(game, this.cat);
       this.bulletDelaySet = true;
       
       setTimeout(function(){
@@ -131,48 +131,25 @@ MainState.prototype = {
     }
   },
 
-  _addBullet: function(game, cat){
-    var bullet = game.bulletGroup.create(cat.body.x, cat.body.y, 'bullet', 0);
-        bullet.body.setSize(12, 12, 9, 9);
-        bullet.checkWorldBounds = true;
-        bullet.outOfBoundsKill = true;
-        bullet.animations.add('explode', [1,2,3,4,5,6,7,8]);
+  addBullet: function(game, cat){
+    var bullet = new Bullet(game, this.cat);
+    this.bulletGroup.add(bullet);
 
     return bullet;
   },
 
-  _setBulletVelocity: function(bullet, cat) {
-    if (cat.facing == 'left'){
-      bullet.x -= 16;
-      bullet.body.velocity.x = -400;
-    } else if (cat.facing == 'right'){
-      bullet.x += 16;
-      bullet.body.velocity.x = 400;
-    } else if (cat.facing == 'up'){
-      bullet.y -=16;
-      bullet.body.velocity.y = -400;
-    } else if (cat.facing == 'down'){
-      bullet.y += 16;
-      bullet.body.velocity.y = 400;
-    }
-  },
-
   onBulletHit: function (obj1, obj2) {
     function doBullet (bullet, target) {
-      bullet.animations.play('explode', 16, false);
-      bullet.body.enable = false;
-      bullet.scale.setTo(1.5,1.5);
-      
-      if (target) target.body.enable = false;
-      setTimeout(function(){
-        if (target) target.kill();
-      }, 200);
-      setTimeout(function(){
-        bullet.kill();
-      }, 500);
+      bullet.onHit();
+      if (target) {
+        target.body.enable = false;
+        setTimeout(function(){
+          target.kill();
+        }, 100);
+      }
     };
 
-    (obj1.key == 'bullet') ? doBullet(obj1) : doBullet(obj2, obj1);
+    (obj2.key) ? doBullet(obj1, obj2) : doBullet(obj1);
   },
 
   inWater: function(event) {
@@ -184,6 +161,4 @@ MainState.prototype = {
   }
 };
 
-var game = new Phaser.Game(640, 480, Phaser.AUTO, 'gameDiv');
-game.state.add('main', MainState);
-game.state.start('main');
+
