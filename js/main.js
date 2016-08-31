@@ -79,7 +79,7 @@ MainState.prototype = {
     var viewX;
     switch (this.nextWave) {
       case 1:
-        for (var i = 0; i < 1; i++) {
+        for (var i = 0; i < 5; i++) {
           this.addEnemy(game, 0, game.rnd.integerInRange(128, 256), 'elvis');
         }
         this.map.setTileLocationCallback(8, 4, 2, 3, null, this, this.collisionLayer);
@@ -115,6 +115,7 @@ MainState.prototype = {
 
   update: function() {
     game.physics.arcade.collide(this.cat, this.collisionLayer);
+    game.physics.arcade.overlap(this.cat, this.enemiesGroup, this.onEnemyTouch);
     game.physics.arcade.collide(this.enemiesGroup, this.collisionLayer);
     game.physics.arcade.collide(this.bulletGroup, this.enemiesGroup, this.onBulletHit);
     game.physics.arcade.collide(this.bulletGroup, this.collisionLayer, this.onBulletHit);
@@ -164,8 +165,11 @@ MainState.prototype = {
         }, 100);
       }
     };
-
     (obj2.key) ? doBullet(obj1, obj2) : doBullet(obj1);
+  },
+
+  onEnemyTouch: function() {
+    game.camera.shake(0.01, 250);
   },
 
 
