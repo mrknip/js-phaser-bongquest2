@@ -3,47 +3,24 @@
 function Cat (game, x,y, sprite) {
   Phaser.Sprite.call(this, game, x, y, sprite);
 
-  this.anchor.setTo(0.5, 0.5);
-  this.state = 'landed';
-  this.sprite = sprite;
-  this.speed = 150;
   game.physics.arcade.enable(this);
+  
+  this.anchor.setTo(0.5, 0.5);
+  this.sprite = sprite;
 
-  this.init();
+  this.animations.add('walkl', [0,1,2,3,4]);
+  this.animations.add('walkr', [6,7,8,9,10]);
+  this.animations.add('walku', [11,12,13,14])
+  this.animations.add('walkd', [15,16,17,18])
+  
+  this.speed = 150;
+  this.moving = false;
+  this.facing = 'left';
 }
 
 Cat.prototype = Object.create(Phaser.Sprite.prototype)
 
 Cat.constructor = Cat;
-
-Cat.prototype.switchStateImage = function() {
-  switch(this.state){
-    case 'underwater':
-      this.state = 'underwater'
-      this.loadTexture(this.sprite, 1);
-      break;
-    default:
-    console.log(this.state)
-      this.state = 'landed';
-      this.loadTexture(this.sprite, 0);
-  }
-}
-Cat.prototype.init = function () {
-  this.animations.add('walkl', [0,1,2,3,4]);
-  this.animations.add('walkr', [6,7,8,9,10]);
-  this.animations.add('walku', [11,12,13,14])
-  this.animations.add('walkd', [15,16,17,18])
-  this.moving = false;
-  this.facing = 'left';
-
-  if (this.sprite == 'elvis') {
-    this.moving = true;
-    this.checkWorldBounds = true;
-    this.outOfBoundsKill = true;
-    this.body.velocity.x = 50;
-    this.updatePathDue = true;
-  }
-}
 
 Cat.prototype.move = function (cursors) {
   if (cursors) {
@@ -77,11 +54,48 @@ Cat.prototype.move = function (cursors) {
   }
 }
 
-Cat.prototype.setTarget = function(cat) {
+Cat.prototype.animate = function () {
+  if (this.moving) {
+    if (this.facing == 'left') {
+      this.animations.play('walkl', 10, true);
+    } else if (this.facing == 'right') {
+      this.animations.play('walkr', 10, true);
+    } else if (this.facing == 'up') {
+      this.animations.play('walku', 10, true);
+    } else if (this.facing == 'down') {
+      this.animations.play('walkd', 15, true);
+    }
+  } else if (this.animations.currentAnim) {
+    this.animations.stop(true);
+  }
+}
+
+
+function Enemy (game, x, y, sprite) {
+  Phaser.Sprite.call(this, game, x, y, sprite);
+  game.physics.arcade.enable(this);
+
+  this.moving = true;
+  this.body.velocity.x = 50;
+  this.speed = 150;
+ 
+  this.animations.add('walkl', [0,1,2,3,4]);
+  this.animations.add('walkr', [6,7,8,9,10]);
+
+  this.checkWorldBounds = true;
+  this.outOfBoundsKill = true;
+  this.updatePathDue = true;
+
+}
+Enemy.prototype = Object.create(Phaser.Sprite.prototype)
+
+Enemy.constructor = Enemy;
+
+Enemy.prototype.setTarget = function(cat) {
   this.target = cat;
 }
 
-Cat.prototype.followPath = function(grid, targetX, targetY) {
+Enemy.prototype.followPath = function(grid, targetX, targetY) {
   // if (!this.pathfinder) {
   //   this.grid = grid;
   //   this.pathfinder = game.plugins.add(Phaser.Plugin.PathFinderPlugin);
@@ -128,20 +142,16 @@ Cat.prototype.followPath = function(grid, targetX, targetY) {
 //   }.bind(this), 100)
 // }
 
-
-Cat.prototype.animate = function () {
+Enemy.prototype.animate = function () {
   if (this.moving) {
     if (this.facing == 'left') {
       this.animations.play('walkl', 10, true);
     } else if (this.facing == 'right') {
       this.animations.play('walkr', 10, true);
-    } else if (this.facing == 'up') {
-      this.animations.play('walku', 10, true);
-    } else if (this.facing == 'down') {
-      this.animations.play('walkd', 15, true);
-    }
-  } else if (this.animations.currentAnim) {
+    } else if (this.animations.currentAnim) {
     this.animations.stop(true);
+    }
   }
 }
+
     

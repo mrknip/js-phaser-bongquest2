@@ -44,6 +44,8 @@ MainState.prototype = {
     this.cursors = game.input.keyboard.createCursorKeys();
     this.shootButton = game.input.keyboard.addKey(Phaser.Keyboard.CONTROL);
     
+    // this.pathfinder = new Pathfinder(this, game);
+
     game.camera.follow(this.cat);
 
   },
@@ -78,7 +80,7 @@ MainState.prototype = {
     switch (this.nextWave) {
       case 1:
         for (var i = 0; i < 5; i++) {
-          var elvis = this.addCat(game, 0, game.rnd.integerInRange(128, 256), 'elvis');
+          var elvis = this.addEnemy(game, 0, game.rnd.integerInRange(128, 256), 'elvis');
           elvis.setTarget(this.cat);
           this.enemiesGroup.add(elvis);
         }
@@ -88,10 +90,10 @@ MainState.prototype = {
         for (var i = 0; i < 10; i++) {
           setTimeout(function(){
             viewX = game.camera.x + game.camera.view.width;
-            var elvis = this.addCat(game, viewX, game.rnd.integerInRange(128, 256), 'elvis');
+            var elvis = this.addEnemy(game, viewX, game.rnd.integerInRange(128, 256), 'elvis');
                 elvis.setTarget(this.cat);
                 this.enemiesGroup.add(elvis);
-            var elvis = this.addCat(game, 0, game.rnd.integerInRange(128, 256), 'elvis');
+            var elvis = this.addEnemy(game, 0, game.rnd.integerInRange(128, 256), 'elvis');
                 elvis.setTarget(this.cat);
                 this.enemiesGroup.add(elvis);
           }.bind(this), i * 100)
@@ -109,6 +111,12 @@ MainState.prototype = {
     return cat;
   },
 
+  addEnemy: function(game, x,y, sprite) {
+    var elvis = new Enemy(game, x, y, sprite);
+    game.add.existing(elvis);
+    return elvis;
+  },
+
   update: function() {
     game.physics.arcade.collide(this.cat, this.collisionLayer);
     game.physics.arcade.collide(this.enemiesGroup, this.collisionLayer);
@@ -116,7 +124,6 @@ MainState.prototype = {
     game.physics.arcade.collide(this.bulletGroup, this.collisionLayer, this.onBulletHit);
 
     // Move AI
-
     this.enemiesGroup.callAll('followPath', null,
       this.collisionLayer,
       this.collisionLayer.getTileX(this.cat.x),
@@ -129,19 +136,6 @@ MainState.prototype = {
     this.cat.animate();
 
     if (this.shootButton.isDown) { this.shoot(); }
-
-    // Spawn enemies
-    // if (this.enemiesGroup.countLiving() < 5 && this.spawnDue) {
-    //   this.spawnDue = false;
-    //   var elvis = this.addCat(game, 640, game.rnd.integerInRange(200, 400), 'elvis');
-    //   elvis.setTarget(this.cat);
-    //   this.enemiesGroup.add(elvis);
-
-    //   setTimeout(function(){
-    //     this.spawnDue = true;
-    //   }.bind(this), 1000);
-    // }
-
 
     // My submerging hack
     this.cat.underwater = false;
