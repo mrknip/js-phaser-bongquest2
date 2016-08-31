@@ -103,14 +103,54 @@ Enemy.prototype.setTarget = function(cat) {
   this.target = cat;
 }
 
-Enemy.prototype.followPath = function(grid, targetX, targetY) {
-
+Enemy.prototype.followPath = function() {
   this.setNewPathToTarget(this.target);
   this.move();
 
   this.facing = this.body.velocity.x > 0 ? 'right' : 'left';
 }
+
+Enemy.prototype.reachedPosition = function (pos) {
+  var distance;
+  distance = Phaser.Point.distance(this.position, pos);
+  return distance < 1.5;
+}
+
+Enemy.prototype.setNewPathToTarget = function(targX, targY) {
+  if (!this.updatePathDue) { return; }
+  this.updatePathDue = false;
   
+  game.pathfinder.setCallbackFunction(function(res) {
+      var path = [];
+      for (var i = 0; i < res.length; i++) {
+        path.push(game.pathfinder.getPixelFromCoord(res[i]))
+      }
+      this.moveThroughPath(path);
+  }.bind(this));
+
+  game.pathfinder.preparePathCalculation(
+    game.pathfinder.getTileXY(this), 
+    game.pathfinder.getTileXY(this.target)
+  )
+  game.pathfinder.calculatePath();
+
+  game.time.events.add(Phaser.Timer.SECOND * 2, function(){
+    if (this.alive) {
+      this.updatePathDue = true;
+      this.setNewPathToTarget();  
+    }
+  }, this)
+}
+
+Enemy.prototype.moveThroughPath = function (path) {
+  if (path !== null) {
+    this.path = path;
+    this.pathStep = 0;
+  } else {
+    this.path = [];
+  }
+}
+
 Enemy.prototype.move = function() {
   var nextPosition, vector;
 
@@ -134,51 +174,11 @@ Enemy.prototype.move = function() {
       this.pathStep = -1;
       this.body.velocity.x = 0;
       this.body.velocity.y = 0;
+      this.setNewPathToTarget();
     }
   }
 }
 
-Enemy.prototype.reachedPosition = function (pos) {
-  var distance;
-  distance = Phaser.Point.distance(this.position, pos);
-  return distance < 1.5;
-}
-
-Enemy.prototype.setNewPathToTarget = function(targX, targY) {
-  if (!this.updatePathDue) { return; }
-  this.updatePathDue = false;
-  
-  game.pathfinder.setCallbackFunction(function(res) {
-      var path = [];
-      for (var i = 0; i < res.length; i++) {
-        // Convert from tile number to x,y coords
-        path.push(game.pathfinder.getPixelFromCoord(res[i]))
-      }
-      console.log(path)
-
-      this.moveThroughPath(path);
-  }.bind(this));
-
-  game.pathfinder.preparePathCalculation(
-    game.pathfinder.getTileXY(this), 
-    game.pathfinder.getTileXY(this.target)
-  )
-  game.pathfinder.calculatePath();
-
-  setTimeout(function(){
-    this.updatePathDue = true;
-    this.setNewPathToTarget();
-  }.bind(this), 2000);
-}
-
-Enemy.prototype.moveThroughPath = function (path) {
-  if (path !== null) {
-    this.path = path;
-    this.pathStep = 0;
-  } else {
-    this.path = [];
-  }
-}
 
 Enemy.prototype.animate = function () {
   if (this.moving) {

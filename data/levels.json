@@ -1,0 +1,83 @@
+{
+  "assets": 
+  {
+    "ROOT": "/assets/",
+    "PATH": 
+    {
+      "spritesheet": "img/",
+      "image": "img/",
+      "tilemap": "tiles/"
+    },
+    "bongo": 
+    {
+      "type": "spritesheet",
+      "source": "bongo.png",
+      "frameWidth": 32,
+      "frameHeight": 32
+    },
+    "elvis":
+    {
+      "type": "spritesheet",
+      "source": "elvis.png",
+      "frameWidth": 32,
+      "frameHeight": 32
+    },
+    "bullet":
+     {
+      "type": "spritesheet",
+      "source": "bullet.png",
+      "frameWidth": 32,
+      "frameHeight": 32
+    },
+    "tree":
+    {
+      "type": "image",
+      "source": "tree.png"
+    },
+    "tiles":
+    {
+      "type": "image",
+      "source": "grassy.png"
+    },
+    "level1":
+    {
+      "type": "tilemap",
+      "source": "triggertest.json"
+    }
+  },
+  "waves":
+  [
+    {
+      "waveNumber": 1,
+      "waveType": "standard",
+      "enemies":
+      [
+        {
+        "type": "elvis",
+        "quantity": 5,
+        "x": "left",
+        "y": "rnd"
+        }
+      ]
+    },
+    {
+      "waveNumber": 2,
+      "waveType": "standard",
+      "enemies": 
+      [
+        {
+        "type": "elvis",
+        "quantity": 5,
+        "x": "right",
+        "y": "rnd"
+        },
+        {
+        "type": "elvis",
+        "quantity": 5,
+        "x": "left",
+        "y": "rnd"
+        }
+      ]
+    }
+  ]
+}

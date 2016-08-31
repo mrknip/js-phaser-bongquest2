@@ -27,6 +27,14 @@
          "height":10,
          "name":"collisionLayer",
          "opacity":1,
+         "properties":
+            {
+             "collisionEnabled":true
+            },
+         "propertytypes":
+            {
+             "collisionEnabled":"bool"
+            },
          "type":"tilelayer",
          "visible":true,
          "width":60,
@@ -43,8 +51,58 @@
          "width":60,
          "x":0,
          "y":0
+        }, 
+        {
+         "draworder":"topdown",
+         "height":10,
+         "name":"triggers",
+         "objects":[
+                {
+                 "height":99.3333333333333,
+                 "id":7,
+                 "name":"waveOne",
+                 "properties":
+                    {
+                     "waveNumber":0
+                    },
+                 "propertytypes":
+                    {
+                     "waveNumber":"int"
+                    },
+                 "rotation":0,
+                 "type":"Trigger",
+                 "visible":true,
+                 "width":31.3333333333333,
+                 "x":288,
+                 "y":126.666666666667
+                }, 
+                {
+                 "height":65.3333333333333,
+                 "id":8,
+                 "name":"waveTwo",
+                 "properties":
+                    {
+                     "waveNumber":1
+                    },
+                 "propertytypes":
+                    {
+                     "waveNumber":"int"
+                    },
+                 "rotation":0,
+                 "type":"Trigger",
+                 "visible":true,
+                 "width":31.3333333333334,
+                 "x":832.666666666667,
+                 "y":96
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "width":60,
+         "x":0,
+         "y":0
         }],
- "nextobjectid":4,
+ "nextobjectid":9,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tileheight":32,

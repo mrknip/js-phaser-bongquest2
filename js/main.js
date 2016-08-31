@@ -1,8 +1,9 @@
 'use strict';
 
+var Bongquest = Bongquest || {};
 // Don't forget hack in Phaser getBounds (87780)
 
-var MainState = function (game) {
+Bongquest.MainState = function (game) {
   this.map;
   this.layer;
 
@@ -11,16 +12,16 @@ var MainState = function (game) {
   this.nextWave;
 };
 
-MainState.prototype = {
-  preload: function() {
-    game.load.tilemap('test', 'assets/tiles/triggertest.json', null, Phaser.Tilemap.TILED_JSON);
+Bongquest.MainState.prototype = {
 
-    game.load.image('tiles', 'assets/img/grassy.png');
-    game.load.image('tree', 'assets/img/tree.png')
-
-    game.load.spritesheet('bullet', 'assets/img/bullet.png', 32, 32);
-    game.load.spritesheet('bongo', 'assets/img/bongo.png', 32, 32);
-    game.load.spritesheet('elvis', 'assets/img/elvis.png', 32, 32);
+  init: function(levelData) {
+    this.levelData = levelData
+  },
+ 
+  reset: function () {
+    this.bulletDelaySet = false;
+    this.spawnDue = true;
+    this.nextWave = 1;
   },
 
   create: function() {
@@ -28,14 +29,17 @@ MainState.prototype = {
     this.reset();
     
     // Add tilemap, bg and collision layer
-    this.loadLevel('test');
+    this.loadLevel('level1');
     
     // Add actors
     this.cat = this.addCat(game, 64, 160, 'bongo');
-    // this.elvis = this.addCat(game, 256, 288, 'elvis');
     this.bulletGroup = game.add.group();
     this.enemiesGroup = game.add.group();
-    // this.enemiesGroup.add(this.elvis);
+    this.triggerGroup = game.add.group();
+
+    // Add triggers
+    this.addTriggers();
+    
 
     // Add foreground
     this.foreground = this.map.createLayer('trees');
@@ -50,41 +54,39 @@ MainState.prototype = {
 
   },
 
-  reset: function () {
-    this.bulletDelaySet = false;
-    this.spawnDue = true;
-    this.nextWave = 1;
+  addTriggers: function(){
+    this.map.objects.triggers.forEach(function(trigger){
+      var newTrigger;
+
+      var newTrigger = game.add.sprite(trigger.x, trigger.y, null);
+      game.physics.arcade.enable(newTrigger);
+      newTrigger.body.setSize(trigger.width, trigger.height, 0 ,0)
+      newTrigger.waveNumber = trigger.waveNumber;
+      newTrigger.live = true;
+      this.triggerGroup.add(newTrigger);
+    
+    }.bind(this))
   },
 
-  loadLevel: function(level) {
-    this.map = game.add.tilemap(level);
-    this.map.addTilesetImage('grassy', 'tiles');
-    this.map.addTilesetImage('tree', 'tree')
-    this.layer = this.map.createLayer('background');
-    this.layer.resizeWorld();
-    this.bgObjLayer = this.map.createLayer('bg objects');
+  isTriggerLive: function(player, trigger) {
+    return trigger.live;
+  },  
 
-    this.collisionLayer = this.map.createLayer('collisionLayer');
-    this.map.setCollisionBetween(0,200,true, this.collisionLayer);
+  
 
-    this.map.setTileLocationCallback(8, 4, 2, 3, this.spawnWave, this, this.collisionLayer);
-    this.map.setTileLocationCallback(25, 3, 2, 2, this.spawnWave, this, this.collisionLayer);
-  },
-
-  hitTrunk: function(e) {
-    console.log(e);
-  },
-
-  spawnWave: function() {
+  triggerWave: function(player, trigger) {
+    console.log(trigger.type);
     var viewX;
-    switch (this.nextWave) {
-      case 1:
+    trigger.live = false;
+    switch (trigger.type) {
+
+      case 'waveOne':
         for (var i = 0; i < 5; i++) {
           this.addEnemy(game, 0, game.rnd.integerInRange(128, 256), 'elvis');
         }
-        this.map.setTileLocationCallback(8, 4, 2, 3, null, this, this.collisionLayer);
         break;
-      case 2:
+
+      case 'waveTwo':
         for (var i = 0; i < 10; i++) {
           setTimeout(function(){
             viewX = game.camera.x + game.camera.view.width;
@@ -95,9 +97,26 @@ MainState.prototype = {
         this.map.setTileLocationCallback(25, 3, 2, 2, null, this, this.collisionLayer);
         break;
     }
-
-    this.nextWave++ ;
   },
+
+
+  loadLevel: function(level) {
+    this.map = game.add.tilemap(level);
+    this.map.addTilesetImage('grassy', 'tiles');
+    this.map.addTilesetImage('tree', 'tree')
+    this.layer = this.map.createLayer('background');
+    this.layer.resizeWorld();
+    this.bgObjLayer = this.map.createLayer('bg objects');
+
+    this.collisionLayer = this.map.createLayer('collisionLayer');
+    
+    this.map.setCollisionBetween(0,200,true, this.collisionLayer);
+  },
+
+  hitTrunk: function(e) {
+    console.log(e);
+  },
+
 
   addCat: function(game, x,y, sprite) {
     var cat = new Cat(game, x, y, sprite);
@@ -120,13 +139,11 @@ MainState.prototype = {
     game.physics.arcade.collide(this.bulletGroup, this.enemiesGroup, this.onBulletHit);
     game.physics.arcade.collide(this.bulletGroup, this.collisionLayer, this.onBulletHit);
 
+    game.physics.arcade.overlap(this.cat, this.triggerGroup, this.triggerWave, this.isTriggerLive, this);
     // Move AI
-    this.enemiesGroup.callAll('followPath', null,
-      this.collisionLayer,
-      this.collisionLayer.getTileX(this.cat.x),
-      this.collisionLayer.getTileY(this.cat.y));
+    this.enemiesGroup.callAllExists('followPath', true);
 
-    this.enemiesGroup.callAll('animate');
+    this.enemiesGroup.callAllExists('animate', true);
 
     // Move Player
     this.cat.move(this.cursors);
@@ -142,9 +159,9 @@ MainState.prototype = {
       var bullet = this.addBullet(game, this.cat);
       this.bulletDelaySet = true;
       
-      setTimeout(function(){
+      game.time.events.add(200, function(){
         this.bulletDelaySet = false;
-      }.bind(this), 200);
+      }, this);
     }
   },
 
