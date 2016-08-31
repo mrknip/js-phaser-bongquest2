@@ -70,25 +70,33 @@ Cat.prototype.animate = function () {
   }
 }
 
-
+/**
+*
+* ENEMY - base class
+*
+*/ 
 function Enemy (game, x, y, sprite) {
   Phaser.Sprite.call(this, game, x, y, sprite);
   game.physics.arcade.enable(this);
+  this.anchor.setTo(0.5, 0.5);
 
   this.moving = true;
+  this.body.setSize(24, 24, 4, 4);
   this.body.velocity.x = 50;
-  this.speed = 150;
+  this.speed = 100;
  
   this.animations.add('walkl', [0,1,2,3,4]);
   this.animations.add('walkr', [6,7,8,9,10]);
 
   this.checkWorldBounds = true;
   this.outOfBoundsKill = true;
+
   this.updatePathDue = true;
+  this.path = [];
+  this.pathStep = -1;
 
 }
 Enemy.prototype = Object.create(Phaser.Sprite.prototype)
-
 Enemy.constructor = Enemy;
 
 Enemy.prototype.setTarget = function(cat) {
@@ -96,51 +104,81 @@ Enemy.prototype.setTarget = function(cat) {
 }
 
 Enemy.prototype.followPath = function(grid, targetX, targetY) {
-  // if (!this.pathfinder) {
-  //   this.grid = grid;
-  //   this.pathfinder = game.plugins.add(Phaser.Plugin.PathFinderPlugin);
-  //   this.pathfinder.setGrid(this.grid.layer.data, [-1]);
-  // }
-  // this.findPathToTarget(targetX, targetY);
-  game.physics.arcade.moveToObject(this, this.target)
-    
+
+  this.setNewPathToTarget(this.target);
+  this.move();
+
   this.facing = this.body.velocity.x > 0 ? 'right' : 'left';
 }
   
-// Cat.prototype.findPathToTarget = function(targX, targY) {
-//   if (!this.updatePathDue) { return}
-//   var selfX = this.grid.getTileX(this.x);
-//   var selfY = this.grid.getTileY(this.y);
+Enemy.prototype.move = function() {
+  var nextPosition, vector;
 
-//   this.updatePathDue = false;
-//   this.pathfinder.setCallbackFunction(function(path) {
-//       var path = path;
-//       var vector = new Phaser.Point(path[1].x - selfX,
-//                                     path[1].y - selfY)
-//       if (vector.x == 0 && vector.y == 0 && path[2]) {
-//         console.log('moving to 2')
-//         var vector = new Phaser.Point(path[2].x - selfX,
-//                                       path[2].y - selfY)
-//       } 
-//       if (vector.x == 0 && vector.y == 0 && path[3]) {
-//         var vector = new Phaser.Point(path[3].x - selfX,
-//                                       path[3].y - selfY)
-//       }
-//       vector.normalize();
-//       this.body.velocity.x = vector.x * this.speed;
-//       this.body.velocity.y = vector.y * this.speed;
-//       // game.physics.arcade.moveToXY(this, path[1].x, path[1].y, this.speed)
-//   }.bind(this));
+  if (this.path.length <= 0) { return; }
 
+  nextPosition = this.path[this.pathStep];
+  if (!this.reachedPosition(nextPosition)) {
+    vector = new Phaser.Point(nextPosition.x - this.position.x,
+                              nextPosition.y - this.position.y);
+    vector.normalize();
 
+    this.body.velocity.x = vector.x * this.speed;
+    this.body.velocity.y = vector.y * this.speed;
+  } else {
+    this.position.x = nextPosition.x;
+    this.position.y = nextPosition.y;
+    if (this.pathStep < this.path.length - 1) {
+      this.pathStep += 1;
+    } else {
+      this.path = [];
+      this.pathStep = -1;
+      this.body.velocity.x = 0;
+      this.body.velocity.y = 0;
+    }
+  }
+}
 
-//   this.pathfinder.preparePathCalculation([selfX, selfY], [targX,targY]);
-//   this.pathfinder.calculatePath();
+Enemy.prototype.reachedPosition = function (pos) {
+  var distance;
+  distance = Phaser.Point.distance(this.position, pos);
+  return distance < 1.5;
+}
 
-//   setTimeout(function(){
-//     this.updatePathDue = true;
-//   }.bind(this), 100)
-// }
+Enemy.prototype.setNewPathToTarget = function(targX, targY) {
+  if (!this.updatePathDue) { return; }
+  this.updatePathDue = false;
+  
+  game.pathfinder.setCallbackFunction(function(res) {
+      var path = [];
+      for (var i = 0; i < res.length; i++) {
+        // Convert from tile number to x,y coords
+        path.push(game.pathfinder.getPixelFromCoord(res[i]))
+      }
+      console.log(path)
+
+      this.moveThroughPath(path);
+  }.bind(this));
+
+  game.pathfinder.preparePathCalculation(
+    game.pathfinder.getTileXY(this), 
+    game.pathfinder.getTileXY(this.target)
+  )
+  game.pathfinder.calculatePath();
+
+  setTimeout(function(){
+    this.updatePathDue = true;
+    this.setNewPathToTarget();
+  }.bind(this), 2000);
+}
+
+Enemy.prototype.moveThroughPath = function (path) {
+  if (path !== null) {
+    this.path = path;
+    this.pathStep = 0;
+  } else {
+    this.path = [];
+  }
+}
 
 Enemy.prototype.animate = function () {
   if (this.moving) {

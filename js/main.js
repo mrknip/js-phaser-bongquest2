@@ -44,7 +44,7 @@ MainState.prototype = {
     this.cursors = game.input.keyboard.createCursorKeys();
     this.shootButton = game.input.keyboard.addKey(Phaser.Keyboard.CONTROL);
     
-    // this.pathfinder = new Pathfinder(this, game);
+    game.pathfinder = game.plugins.add(Phaser.Plugin.PathFinderPlugin, this.collisionLayer);
 
     game.camera.follow(this.cat);
 
@@ -79,10 +79,8 @@ MainState.prototype = {
     var viewX;
     switch (this.nextWave) {
       case 1:
-        for (var i = 0; i < 5; i++) {
-          var elvis = this.addEnemy(game, 0, game.rnd.integerInRange(128, 256), 'elvis');
-          elvis.setTarget(this.cat);
-          this.enemiesGroup.add(elvis);
+        for (var i = 0; i < 1; i++) {
+          this.addEnemy(game, 0, game.rnd.integerInRange(128, 256), 'elvis');
         }
         this.map.setTileLocationCallback(8, 4, 2, 3, null, this, this.collisionLayer);
         break;
@@ -90,12 +88,8 @@ MainState.prototype = {
         for (var i = 0; i < 10; i++) {
           setTimeout(function(){
             viewX = game.camera.x + game.camera.view.width;
-            var elvis = this.addEnemy(game, viewX, game.rnd.integerInRange(128, 256), 'elvis');
-                elvis.setTarget(this.cat);
-                this.enemiesGroup.add(elvis);
-            var elvis = this.addEnemy(game, 0, game.rnd.integerInRange(128, 256), 'elvis');
-                elvis.setTarget(this.cat);
-                this.enemiesGroup.add(elvis);
+            this.addEnemy(game, viewX, game.rnd.integerInRange(128, 256), 'elvis');    
+            this.addEnemy(game, 0, game.rnd.integerInRange(128, 256), 'elvis');
           }.bind(this), i * 100)
         }
         this.map.setTileLocationCallback(25, 3, 2, 2, null, this, this.collisionLayer);
@@ -113,7 +107,9 @@ MainState.prototype = {
 
   addEnemy: function(game, x,y, sprite) {
     var elvis = new Enemy(game, x, y, sprite);
+    elvis.setTarget(this.cat);
     game.add.existing(elvis);
+    this.enemiesGroup.add(elvis);
     return elvis;
   },
 
@@ -136,21 +132,6 @@ MainState.prototype = {
     this.cat.animate();
 
     if (this.shootButton.isDown) { this.shoot(); }
-
-    // My submerging hack
-    this.cat.underwater = false;
-    game.physics.arcade.collide(this.cat, this.water);
-    if (this.cat.underwater) {
-      if (this.cat.state != 'underwater') {
-        this.cat.state = 'underwater';
-        this.cat.switchStateImage();
-      }
-    } else {
-      if (this.cat.state == 'underwater') {
-        this.cat.state = 'landed';
-        this.cat.switchStateImage();
-      }
-    }
   },
 
   shoot: function(){
@@ -187,12 +168,12 @@ MainState.prototype = {
     (obj2.key) ? doBullet(obj1, obj2) : doBullet(obj1);
   },
 
-  inWater: function(event) {
-    this.cat.underwater = true;
-  },
 
   render: function(){
-    game.debug.body(this.collisionLayer)
+    // function renderGroup(member) {    
+    //   game.debug.body(member);
+    // }
+    // this.enemiesGroup.forEachAlive(renderGroup, this);
   }
 };
 

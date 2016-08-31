@@ -7,6 +7,6 @@ function Pathfinder (game, parent) {
 Pathfinder.prototype = Object.create(Phaser.Plugin.prototype);
 Pathfinder.constructor = Pathfinder;
 
-Pathfinder.prototype.init = function () {
-  console.log('hi')
+Pathfinder.prototype.init = function (text) {
+  console.log('hi', text)
 }
