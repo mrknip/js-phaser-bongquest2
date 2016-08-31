@@ -40,7 +40,6 @@ Bongquest.MainState.prototype = {
     // Add triggers
     this.addTriggers();
     
-
     // Add foreground
     this.foreground = this.map.createLayer('trees');
 
@@ -55,50 +54,66 @@ Bongquest.MainState.prototype = {
   },
 
   addTriggers: function(){
-    this.map.objects.triggers.forEach(function(trigger){
-      var newTrigger;
+    this.map.objects.triggers.forEach(function(data){
+      var trigger, property;
 
-      var newTrigger = game.add.sprite(trigger.x, trigger.y, null);
-      game.physics.arcade.enable(newTrigger);
-      newTrigger.body.setSize(trigger.width, trigger.height, 0 ,0)
-      newTrigger.waveNumber = trigger.waveNumber;
-      newTrigger.live = true;
-      this.triggerGroup.add(newTrigger);
-    
+      trigger = game.add.sprite(data.x, data.y, null);
+      game.physics.arcade.enable(trigger);
+      trigger.body.setSize(data.width, data.height, 0 ,0)
+
+      for (property in data.properties) {
+        trigger[property] = data.properties[property];
+      }
+      
+      this.triggerGroup.add(trigger);    
     }.bind(this))
   },
 
-  isTriggerLive: function(player, trigger) {
-    return trigger.live;
-  },  
-
-  
-
   triggerWave: function(player, trigger) {
-    console.log(trigger.type);
-    var viewX;
+    var i, n, enemy = {}, squad, x, y, type, timeout, waveData, viewX;
+    
+    if (!trigger.live) return;
     trigger.live = false;
-    switch (trigger.type) {
+    
+    waveData = this.levelData.waves[trigger.waveNumber];
+    console.log(waveData)
 
-      case 'waveOne':
-        for (var i = 0; i < 5; i++) {
-          this.addEnemy(game, 0, game.rnd.integerInRange(128, 256), 'elvis');
-        }
-        break;
+    for (i = 0; i < waveData.squads.length; i++) {
+      squad = waveData.squads[i];
 
-      case 'waveTwo':
-        for (var i = 0; i < 10; i++) {
-          setTimeout(function(){
-            viewX = game.camera.x + game.camera.view.width;
-            this.addEnemy(game, viewX, game.rnd.integerInRange(128, 256), 'elvis');    
-            this.addEnemy(game, 0, game.rnd.integerInRange(128, 256), 'elvis');
-          }.bind(this), i * 100)
+      for (n = 0; n < squad.quantity; n++){
+        viewX = null;
+        if (squad.x == 'right') {
+          viewX = true;
         }
-        this.map.setTileLocationCallback(25, 3, 2, 2, null, this, this.collisionLayer);
-        break;
+        // Build data to go into closure
+        enemy = Object.create(null);
+        enemy.x = squad.x == 'left' ? 0 : viewX;
+        enemy.y = squad.y == 'rnd' ? game.rnd.integerInRange(78,272) : squad.y;
+        enemy.type = squad.type;
+        enemy.timeout = squad.interval * n;
+
+        function spawnCallback(enemyEnt){
+          return function(viewX){
+            game.time.events.add(enemyEnt.timeout, function(){
+              if (viewX) {enemyEnt.x = game.camera.x + game.camera.view.width};
+              console.log('enemy', enemyEnt.x, enemyEnt.y, enemyEnt.timeout)
+              this.addEnemy(game, enemyEnt.x, enemyEnt.y, enemyEnt.type);
+            }.bind(this));
+          };
+        };
+
+        spawnCallback(enemy).bind(this)(viewX);
+
+        // (function(enemy){
+        //   game.time.events.add(enemy.timeout, function(){
+        //     console.log('enemy', enemy.x, enemy.y, enemy.timeout)
+        //     this.addEnemy(game, enemy.x, enemy.y, enemy.type);
+        //   }, this);
+        // }.bind(this))(enemy);
+      } 
     }
   },
-
 
   loadLevel: function(level) {
     this.map = game.add.tilemap(level);
@@ -139,7 +154,7 @@ Bongquest.MainState.prototype = {
     game.physics.arcade.collide(this.bulletGroup, this.enemiesGroup, this.onBulletHit);
     game.physics.arcade.collide(this.bulletGroup, this.collisionLayer, this.onBulletHit);
 
-    game.physics.arcade.overlap(this.cat, this.triggerGroup, this.triggerWave, this.isTriggerLive, this);
+    game.physics.arcade.overlap(this.cat, this.triggerGroup, this.triggerWave, null, this);
     // Move AI
     this.enemiesGroup.callAllExists('followPath', true);
 

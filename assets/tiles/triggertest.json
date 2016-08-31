@@ -63,10 +63,12 @@
                  "name":"waveOne",
                  "properties":
                     {
+                     "live":true,
                      "waveNumber":0
                     },
                  "propertytypes":
                     {
+                     "live":"bool",
                      "waveNumber":"int"
                     },
                  "rotation":0,
@@ -82,10 +84,12 @@
                  "name":"waveTwo",
                  "properties":
                     {
+                     "live":true,
                      "waveNumber":1
                     },
                  "propertytypes":
                     {
+                     "live":"bool",
                      "waveNumber":"int"
                     },
                  "rotation":0,

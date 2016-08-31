@@ -48,34 +48,37 @@
   "waves":
   [
     {
-      "waveNumber": 1,
+      "waveName": 1,
       "waveType": "standard",
-      "enemies":
+      "squads":
       [
         {
         "type": "elvis",
         "quantity": 5,
         "x": "left",
-        "y": "rnd"
+        "y": "rnd",
+        "interval": 0
         }
       ]
     },
     {
-      "waveNumber": 2,
+      "waveName": 2,
       "waveType": "standard",
-      "enemies": 
+      "squads": 
       [
         {
         "type": "elvis",
-        "quantity": 5,
+        "quantity": 10,
         "x": "right",
-        "y": "rnd"
+        "y": "rnd",
+        "interval": 200
         },
         {
         "type": "elvis",
-        "quantity": 5,
+        "quantity": 10,
         "x": "left",
-        "y": "rnd"
+        "y": "rnd",
+        "interval": 100
         }
       ]
     }

@@ -122,8 +122,10 @@ Enemy.prototype.setNewPathToTarget = function(targX, targY) {
   
   game.pathfinder.setCallbackFunction(function(res) {
       var path = [];
-      for (var i = 0; i < res.length; i++) {
-        path.push(game.pathfinder.getPixelFromCoord(res[i]))
+      if (res != null) {
+        for (var i = 0; i < res.length; i++) {
+          path.push(game.pathfinder.getPixelFromCoord(res[i]))
+        }
       }
       this.moveThroughPath(path);
   }.bind(this));
@@ -134,7 +136,7 @@ Enemy.prototype.setNewPathToTarget = function(targX, targY) {
   )
   game.pathfinder.calculatePath();
 
-  game.time.events.add(Phaser.Timer.SECOND * 2, function(){
+  game.time.events.add(Phaser.Timer.SECOND * 1, function(){
     if (this.alive) {
       this.updatePathDue = true;
       this.setNewPathToTarget();  
