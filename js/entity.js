@@ -40,7 +40,8 @@ Cat.prototype.init = function () {
     this.moving = true;
     this.checkWorldBounds = true;
     this.outOfBoundsKill = true;
-    this.body.velocity.x = -200;
+    this.body.velocity.x = 50;
+    this.updatePathDue = true;
   }
 }
 
@@ -74,23 +75,59 @@ Cat.prototype.move = function (cursors) {
       this.moving = true;
     }
   }
-  
-  if (this.target) {
-    game.physics.arcade.moveToObject(this, this.target)
-  }
-
-  // if (this.x < 50) {
-  //   this.body.velocity.x = 200;
-  //   this.facing = 'right';
-  // } else if (this.x > 400) {
-  //   this.body.velocity.x = -200;
-  //   this.facing = 'left';
-  // } 
 }
 
 Cat.prototype.setTarget = function(cat) {
   this.target = cat;
 }
+
+Cat.prototype.followPath = function(grid, targetX, targetY) {
+  // if (!this.pathfinder) {
+  //   this.grid = grid;
+  //   this.pathfinder = game.plugins.add(Phaser.Plugin.PathFinderPlugin);
+  //   this.pathfinder.setGrid(this.grid.layer.data, [-1]);
+  // }
+  // this.findPathToTarget(targetX, targetY);
+  game.physics.arcade.moveToObject(this, this.target)
+    
+  this.facing = this.body.velocity.x > 0 ? 'right' : 'left';
+}
+  
+// Cat.prototype.findPathToTarget = function(targX, targY) {
+//   if (!this.updatePathDue) { return}
+//   var selfX = this.grid.getTileX(this.x);
+//   var selfY = this.grid.getTileY(this.y);
+
+//   this.updatePathDue = false;
+//   this.pathfinder.setCallbackFunction(function(path) {
+//       var path = path;
+//       var vector = new Phaser.Point(path[1].x - selfX,
+//                                     path[1].y - selfY)
+//       if (vector.x == 0 && vector.y == 0 && path[2]) {
+//         console.log('moving to 2')
+//         var vector = new Phaser.Point(path[2].x - selfX,
+//                                       path[2].y - selfY)
+//       } 
+//       if (vector.x == 0 && vector.y == 0 && path[3]) {
+//         var vector = new Phaser.Point(path[3].x - selfX,
+//                                       path[3].y - selfY)
+//       }
+//       vector.normalize();
+//       this.body.velocity.x = vector.x * this.speed;
+//       this.body.velocity.y = vector.y * this.speed;
+//       // game.physics.arcade.moveToXY(this, path[1].x, path[1].y, this.speed)
+//   }.bind(this));
+
+
+
+//   this.pathfinder.preparePathCalculation([selfX, selfY], [targX,targY]);
+//   this.pathfinder.calculatePath();
+
+//   setTimeout(function(){
+//     this.updatePathDue = true;
+//   }.bind(this), 100)
+// }
+
 
 Cat.prototype.animate = function () {
   if (this.moving) {

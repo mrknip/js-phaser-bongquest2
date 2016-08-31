@@ -6,8 +6,9 @@ var MainState = function (game) {
   this.map;
   this.layer;
 
-  this.bulletDelaySet = false;
-  this.spawnDue = true;
+  this.bulletDelaySet;
+  this.spawnDue;
+  this.nextWave;
 };
 
 MainState.prototype = {
@@ -15,6 +16,7 @@ MainState.prototype = {
     game.load.tilemap('test', 'assets/tiles/triggertest.json', null, Phaser.Tilemap.TILED_JSON);
 
     game.load.image('tiles', 'assets/img/grassy.png');
+    game.load.image('tree', 'assets/img/tree.png')
 
     game.load.spritesheet('bullet', 'assets/img/bullet.png', 32, 32);
     game.load.spritesheet('bongo', 'assets/img/bongo.png', 32, 32);
@@ -23,47 +25,82 @@ MainState.prototype = {
 
   create: function() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
-
+    this.reset();
+    
+    // Add tilemap, bg and collision layer
     this.loadLevel('test');
-  
+    
+    // Add actors
     this.cat = this.addCat(game, 64, 160, 'bongo');
-    this.elvis = this.addCat(game, 256, 288, 'elvis');
-
-    // Entities
+    // this.elvis = this.addCat(game, 256, 288, 'elvis');
     this.bulletGroup = game.add.group();
     this.enemiesGroup = game.add.group();
-    this.enemiesGroup.add(this.elvis);
+    // this.enemiesGroup.add(this.elvis);
 
-    // Controls
+    // Add foreground
+    this.foreground = this.map.createLayer('trees');
+
+    // Controls 
     this.cursors = game.input.keyboard.createCursorKeys();
     this.shootButton = game.input.keyboard.addKey(Phaser.Keyboard.CONTROL);
     
     game.camera.follow(this.cat);
+
+  },
+
+  reset: function () {
+    this.bulletDelaySet = false;
+    this.spawnDue = true;
+    this.nextWave = 1;
   },
 
   loadLevel: function(level) {
     this.map = game.add.tilemap(level);
     this.map.addTilesetImage('grassy', 'tiles');
+    this.map.addTilesetImage('tree', 'tree')
     this.layer = this.map.createLayer('background');
     this.layer.resizeWorld();
+    this.bgObjLayer = this.map.createLayer('bg objects');
 
     this.collisionLayer = this.map.createLayer('collisionLayer');
-    this.map.setCollisionBetween(1,20,true, this.collisionLayer);
-    // this.map.setTileIndexCallback(16, this.inWater, this, this.water);
-    // this.map.setCollision([2,3, 5,7,8,10,12,13], true, this.layer);
+    this.map.setCollisionBetween(0,200,true, this.collisionLayer);
 
     this.map.setTileLocationCallback(8, 4, 2, 3, this.spawnWave, this, this.collisionLayer);
+    this.map.setTileLocationCallback(25, 3, 2, 2, this.spawnWave, this, this.collisionLayer);
+  },
+
+  hitTrunk: function(e) {
+    console.log(e);
   },
 
   spawnWave: function() {
-    console.log('triggered');
-    if (this.waveOneComplete) return;
-    for (var i = 0; i < 5; i++) {
-      var elvis = this.addCat(game, 640, game.rnd.integerInRange(128, 256), 'elvis');
-      elvis.setTarget(this.cat);
-      this.enemiesGroup.add(elvis);
+    var viewX;
+    switch (this.nextWave) {
+      case 1:
+        for (var i = 0; i < 5; i++) {
+          var elvis = this.addCat(game, 0, game.rnd.integerInRange(128, 256), 'elvis');
+          elvis.setTarget(this.cat);
+          this.enemiesGroup.add(elvis);
+        }
+        this.map.setTileLocationCallback(8, 4, 2, 3, null, this, this.collisionLayer);
+        break;
+      case 2:
+        for (var i = 0; i < 10; i++) {
+          setTimeout(function(){
+            viewX = game.camera.x + game.camera.view.width;
+            var elvis = this.addCat(game, viewX, game.rnd.integerInRange(128, 256), 'elvis');
+                elvis.setTarget(this.cat);
+                this.enemiesGroup.add(elvis);
+            var elvis = this.addCat(game, 0, game.rnd.integerInRange(128, 256), 'elvis');
+                elvis.setTarget(this.cat);
+                this.enemiesGroup.add(elvis);
+          }.bind(this), i * 100)
+        }
+        this.map.setTileLocationCallback(25, 3, 2, 2, null, this, this.collisionLayer);
+        break;
     }
-    this.waveOneComplete = true;
+
+    this.nextWave++ ;
   },
 
   addCat: function(game, x,y, sprite) {
@@ -80,7 +117,11 @@ MainState.prototype = {
 
     // Move AI
 
-    this.enemiesGroup.callAll('move');
+    this.enemiesGroup.callAll('followPath', null,
+      this.collisionLayer,
+      this.collisionLayer.getTileX(this.cat.x),
+      this.collisionLayer.getTileY(this.cat.y));
+
     this.enemiesGroup.callAll('animate');
 
     // Move Player
@@ -157,7 +198,7 @@ MainState.prototype = {
   },
 
   render: function(){
-    // game.debug.body(this.cat)
+    game.debug.body(this.collisionLayer)
   }
 };
 
