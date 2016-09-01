@@ -15,8 +15,16 @@ Bongquest.LoadingState.prototype.init = function (levelData, nextState) {
 }
 
 Bongquest.LoadingState.prototype.preload = function () {
-  var assets, key, asset, path;
+  var assets, key, asset, path, text;
   assets = this.levelData.assets;
+
+  this.stage.backgroundColor = '#AAAAAA';
+
+  this.addProgressBar(assets);
+
+  // text = this.game.add.text(320, 160, 'LOADING', {font: '14px ubuntu', fill: '#ffffff'});
+  // text.anchor.set(0.5)
+
   for (key in assets) {
     asset = assets[key];
     path = assets.ROOT + assets.PATH[asset.type];
@@ -35,6 +43,16 @@ Bongquest.LoadingState.prototype.preload = function () {
   }
 }
 
-Bongquest.LoadingState.prototype.create = function () {
-   this.game.state.start('main', true, false, this.levelData);
+Bongquest.LoadingState.prototype.addProgressBar = function (assets) {
+  this._loadingBar = this.add.sprite(this.world.centerX, this.world.centerY, this.levelData.loadbar.key);            
+  this._loadingBar.anchor.setTo(0.5, 0.5);
+  this.load.setPreloadSprite(this._loadingBar);
+
+  this.load.onLoadComplete.add(this.onLoadComplete, this)
+}
+
+Bongquest.LoadingState.prototype.onLoadComplete = function () {
+   this.time.events.add(Phaser.Timer.HALF, function(){
+    this.game.state.start('main', true, false, this.levelData);
+  }, this)
 }

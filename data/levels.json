@@ -1,5 +1,11 @@
 {
-  "assets": 
+  "loadbar":
+  {
+    "type": "image",
+    "key": "loadbar",
+    "source": "tree.png"
+  },
+"assets": 
   {
     "ROOT": "/assets/",
     "PATH": 

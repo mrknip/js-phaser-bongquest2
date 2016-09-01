@@ -15,12 +15,16 @@ Bongquest.BootState.prototype.init = function (levelFile, nextState) {
 }
 
 Bongquest.BootState.prototype.preload = function () {
+  this.load.image('loadbar', 'assets/img/progressbar.png')
+  
   this.load.text('levelText', this.levelFile);
+
 }
 
 Bongquest.BootState.prototype.create = function () {
   var levelData, levelText;
   levelText = this.game.cache.getText('levelText')
   levelData = JSON.parse(levelText);
+
   this.game.state.start('load', true, false, levelData, this.nextState);
 }
