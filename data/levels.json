@@ -3,7 +3,8 @@
   {
     "type": "image",
     "key": "loadbar",
-    "source": "tree.png"
+    "source": "tree.png",
+    "width": 160
   },
 "assets": 
   {
