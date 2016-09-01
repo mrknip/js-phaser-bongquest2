@@ -4,27 +4,39 @@ function Cat (game, x,y, sprite) {
   Phaser.Sprite.call(this, game, x, y, sprite);
 
   game.physics.arcade.enable(this);
-  
+  this.body.setSize(24, 24, 4, 4);
+
   this.anchor.setTo(0.5, 0.5);
   this.sprite = sprite;
 
   this.animations.add('walkl', [0,1,2,3,4]);
   this.animations.add('walkr', [6,7,8,9,10]);
   this.animations.add('walku', [11,12,13,14])
-  this.animations.add('walkd', [15,16,17,18])
+  this.animations.add('walkd', [15,16,17,18]);
+  this.animations.add('swiper', [6,19,20,21,22,23,6]);
+  this.animations.add('swipel', [0,28,27,26,25,24,0]);
+  this.animations.add('swipeu', [11,29,30,31,11]);
+  this.animations.add('swiped', [15,32,33,34,15]);
   
   this.speed = 150;
   this.moving = false;
-  this.facing = 'right';
+  this.attacking = false;
+  this.attackMode = 'melee';
+  this.facing = 'left';
 
   this.nextPosition;
 }
 
 Cat.prototype = Object.create(Phaser.Sprite.prototype)
-
 Cat.constructor = Cat;
 
 Cat.prototype.move = function (cursors) {
+  if (this.attacking) { 
+    this.body.velocity.x = 0;
+    this.body.velocity.y = 0;
+    return;
+  }
+
   if (cursors) {
     this.body.velocity.x = 0;
     this.body.velocity.y = 0;
@@ -56,8 +68,8 @@ Cat.prototype.move = function (cursors) {
   }
 }
 
-Cat.prototype.animate = function () {
-  if (this.moving) {
+Cat.prototype.animate = function (type) {
+  if (this.moving && !this.attacking  ) {
     if (this.facing == 'left') {
       this.animations.play('walkl', 10, true);
     } else if (this.facing == 'right') {
@@ -67,7 +79,7 @@ Cat.prototype.animate = function () {
     } else if (this.facing == 'down') {
       this.animations.play('walkd', 15, true);
     }
-  } else if (this.animations.currentAnim) {
+  } else if (this.animations.currentAnim && !this.attacking) {
     this.animations.stop(true);
   }
 }
@@ -84,7 +96,6 @@ function Enemy (game, x, y, sprite) {
 
   this.moving = true;
   this.body.setSize(24, 24, 4, 4);
-  this.body.velocity.x = 50;
   this.speed = game.rnd.integerInRange(50, 150);
  
   this.animations.add('walkl', [0,1,2,3,4]);
@@ -108,6 +119,7 @@ Enemy.prototype.setTarget = function(cat) {
 }
 
 Enemy.prototype.update = function() {
+
   if (this.updatePathDue) this.setNewPathToTarget(this.nextPosition);
   this.move();
 
@@ -160,6 +172,7 @@ Enemy.prototype.setPath = function (path) {
 }
 
 Enemy.prototype.move = function() {
+    if (this.debug) return; 
   var vector;
 
   if (this.path.length <= 0) { return; }

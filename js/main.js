@@ -8,6 +8,7 @@ Bongquest.MainState = function (game) {
   this.layer;
 
   this.bulletDelaySet;
+  this.attackDelaySet;
   this.spawnDue;
   this.nextWave;
 
@@ -23,6 +24,7 @@ Bongquest.MainState.prototype = {
  
   reset: function () {
     this.bulletDelaySet = false;
+    this.attackDelaySet = false;
     this.spawnDue = true;
     this.nextWave = 1;
     this.playerScore = 0;
@@ -37,9 +39,15 @@ Bongquest.MainState.prototype = {
     
     // Add actors
     this.cat = this.addCat(game, 64, 160, 'bongo');
+
     this.bulletGroup = game.add.group();
     this.enemiesGroup = game.add.group();
     this.triggerGroup = game.add.group();
+
+    // this.testEnemy = this.addEnemy(game, 96, 160, 'elvis');
+    // this.testEnemy.debug = true;
+    this.testPowerUp = game.add.sprite(832  , 96, 'bullet');
+    game.physics.enable(this.testPowerUp);
 
     // Add triggers
     this.addTriggers();
@@ -109,20 +117,29 @@ Bongquest.MainState.prototype = {
 
   update: function() {
     game.physics.arcade.collide(this.cat, this.collisionLayer);
-    game.physics.arcade.overlap(this.cat, this.enemiesGroup, this.onEnemyTouch);
+    game.physics.arcade.collide(this.cat, this.enemiesGroup, this.onEnemyTouch);
     game.physics.arcade.collide(this.enemiesGroup, this.collisionLayer);
     game.physics.arcade.collide(this.bulletGroup, this.enemiesGroup, this.onBulletHit, null, this);
     game.physics.arcade.collide(this.bulletGroup, this.collisionLayer, this.onBulletHit, null, this);
 
     game.physics.arcade.overlap(this.cat, this.triggerGroup, this.triggerWave, null, this);
+    game.physics.arcade.overlap(this.cat, this.testPowerUp, this.powerUp, null, this);
 
     // Move Player
     this.cat.move(this.cursors);
     this.cat.animate();
 
-    if (this.shootButton.isDown) { this.shoot(); }
+    if (this.shootButton.isDown) { 
+      this.cat.attackMode === 'shoot' ? this.shoot() : this.meleeAttack(this.cat); 
+    }
 
     this.playerScoreText.setText(this.playerScore);
+  },
+
+  powerUp: function(cat, powerup) {
+    console.log(cat)
+    powerup.kill();
+    this.cat.attackMode = 'shoot';
   },
 
   triggerWave: function(player, trigger) {
@@ -164,6 +181,59 @@ Bongquest.MainState.prototype = {
     }
   },
 
+  meleeAttack: function(cat){
+    var directions, catXY, catTileXY, targetXY, targetTileXY;
+    
+    if (this.attackDelaySet == false) {
+      this.attackDelaySet = true;
+
+
+      var meleeFront = 32;
+      var meleeSide = 42;
+      directions = {
+        'left':  new Phaser.Rectangle(this.cat.x - meleeFront - this.cat.body.width / 2, 
+                                      this.cat.y - meleeSide / 2, 
+                                      meleeFront, meleeSide),
+        'right': new Phaser.Rectangle(this.cat.x + this.cat.body.width / 2, 
+                                      this.cat.y - meleeSide / 2, 
+                                      meleeFront, meleeSide),
+        'up':    new Phaser.Rectangle(this.cat.x - meleeSide / 2, 
+                                      this.cat.y - meleeFront - this.cat.body.height / 2,
+                                      meleeSide, meleeFront),
+        'down':  new Phaser.Rectangle(this.cat.x - meleeSide / 2, 
+                                      this.cat.y + this.cat.body.height / 2, 
+                                      meleeSide, meleeFront),
+      }
+    
+      cat.attacking = true;
+      
+      if (cat.facing == 'left') {
+        cat.animations.play('swipel', 20, false);
+      } else if (cat.facing == 'right') {
+        cat.animations.play('swiper', 20, false);
+      } else if (cat.facing == 'up') {
+        cat.animations.play('swipeu', 15, false);
+      } else if (cat.facing == 'down') {
+        cat.animations.play('swiped', 15, false);
+      }
+
+      this.rectangle = directions[cat.facing];
+      this.enemiesGroup.forEachAlive(function(enemy){
+        if (this.rectangle.intersects(enemy.getBounds().offset(game.camera.x, game.camera.y))) {
+          console.log("hit ", enemy);
+          game.time.events.add(300, function(){
+            this.playerScore += enemy.pointsValue;
+            enemy.kill();
+          }, this);
+        }
+      },this);
+
+      game.time.events.add(300, function(){
+        this.attackDelaySet = false;
+        cat.attacking = false;
+      }, this);
+    }    
+  },
 
   shoot: function(){
     if (this.bulletGroup.countLiving() > 50) { return; }
@@ -177,8 +247,6 @@ Bongquest.MainState.prototype = {
       }, this);
     }
   },
-
-
 
   onBulletHit: function (obj1, obj2) {
     function doBullet (bullet, target) {
@@ -203,12 +271,14 @@ Bongquest.MainState.prototype = {
     game.camera.shake(0.01, 250);
   },
 
-
   render: function(){
     // function renderGroup(member) {    
     //   game.debug.body(member);
     // }
     // this.enemiesGroup.forEachAlive(renderGroup, this);
+    // game.debug.body(this.cat);
+
+    // game.debug.geom(this.rectangle, 'rgba(0,0,255,0.5)');
   }
 };
 
