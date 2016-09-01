@@ -10,6 +10,9 @@ Bongquest.MainState = function (game) {
   this.bulletDelaySet;
   this.spawnDue;
   this.nextWave;
+
+  this.playerScore;
+  this.playerScoreText;
 };
 
 Bongquest.MainState.prototype = {
@@ -22,6 +25,7 @@ Bongquest.MainState.prototype = {
     this.bulletDelaySet = false;
     this.spawnDue = true;
     this.nextWave = 1;
+    this.playerScore = 0;
   },
 
   create: function() {
@@ -42,7 +46,6 @@ Bongquest.MainState.prototype = {
     
     // Add foreground
     this.foreground = this.map.createLayer('trees');
-
     // Controls 
     this.cursors = game.input.keyboard.createCursorKeys();
     this.shootButton = game.input.keyboard.addKey(Phaser.Keyboard.CONTROL);
@@ -50,7 +53,8 @@ Bongquest.MainState.prototype = {
     game.pathfinder = game.plugins.add(Phaser.Plugin.PathFinderPlugin, this.collisionLayer);
 
     game.camera.follow(this.cat);
-
+    this.playerScoreText = game.add.text(16, 16, this.playerScore, {font: 'ubuntu 16px', fill: '#fff'})
+    this.playerScoreText.fixedToCamera = true;
   },
 
   addTriggers: function(){
@@ -69,52 +73,6 @@ Bongquest.MainState.prototype = {
     }.bind(this))
   },
 
-  triggerWave: function(player, trigger) {
-    var i, n, enemy = {}, squad, x, y, type, timeout, waveData, viewX;
-    
-    if (!trigger.live) return;
-    trigger.live = false;
-    
-    waveData = this.levelData.waves[trigger.waveNumber];
-    console.log(waveData)
-
-    for (i = 0; i < waveData.squads.length; i++) {
-      squad = waveData.squads[i];
-
-      for (n = 0; n < squad.quantity; n++){
-        viewX = null;
-        if (squad.x == 'right') {
-          viewX = true;
-        }
-        // Build data to go into closure
-        enemy = Object.create(null);
-        enemy.x = squad.x == 'left' ? 0 : viewX;
-        enemy.y = squad.y == 'rnd' ? game.rnd.integerInRange(78,272) : squad.y;
-        enemy.type = squad.type;
-        enemy.timeout = squad.interval * n;
-
-        function spawnCallback(enemyEnt){
-          return function(viewX){
-            game.time.events.add(enemyEnt.timeout, function(){
-              if (viewX) {enemyEnt.x = game.camera.x + game.camera.view.width};
-              console.log('enemy', enemyEnt.x, enemyEnt.y, enemyEnt.timeout)
-              this.addEnemy(game, enemyEnt.x, enemyEnt.y, enemyEnt.type);
-            }.bind(this));
-          };
-        };
-
-        spawnCallback(enemy).bind(this)(viewX);
-
-        // (function(enemy){
-        //   game.time.events.add(enemy.timeout, function(){
-        //     console.log('enemy', enemy.x, enemy.y, enemy.timeout)
-        //     this.addEnemy(game, enemy.x, enemy.y, enemy.type);
-        //   }, this);
-        // }.bind(this))(enemy);
-      } 
-    }
-  },
-
   loadLevel: function(level) {
     this.map = game.add.tilemap(level);
     this.map.addTilesetImage('grassy', 'tiles');
@@ -127,11 +85,6 @@ Bongquest.MainState.prototype = {
     
     this.map.setCollisionBetween(0,200,true, this.collisionLayer);
   },
-
-  hitTrunk: function(e) {
-    console.log(e);
-  },
-
 
   addCat: function(game, x,y, sprite) {
     var cat = new Cat(game, x, y, sprite);
@@ -147,25 +100,70 @@ Bongquest.MainState.prototype = {
     return elvis;
   },
 
+  addBullet: function(game, cat){
+    var bullet = new Bullet(game, this.cat);
+    this.bulletGroup.add(bullet);
+
+    return bullet;
+  },
+
   update: function() {
     game.physics.arcade.collide(this.cat, this.collisionLayer);
     game.physics.arcade.overlap(this.cat, this.enemiesGroup, this.onEnemyTouch);
     game.physics.arcade.collide(this.enemiesGroup, this.collisionLayer);
-    game.physics.arcade.collide(this.bulletGroup, this.enemiesGroup, this.onBulletHit);
-    game.physics.arcade.collide(this.bulletGroup, this.collisionLayer, this.onBulletHit);
+    game.physics.arcade.collide(this.bulletGroup, this.enemiesGroup, this.onBulletHit, null, this);
+    game.physics.arcade.collide(this.bulletGroup, this.collisionLayer, this.onBulletHit, null, this);
 
     game.physics.arcade.overlap(this.cat, this.triggerGroup, this.triggerWave, null, this);
-    // Move AI
-    this.enemiesGroup.callAllExists('followPath', true);
-
-    this.enemiesGroup.callAllExists('animate', true);
 
     // Move Player
     this.cat.move(this.cursors);
     this.cat.animate();
 
     if (this.shootButton.isDown) { this.shoot(); }
+
+    this.playerScoreText.setText(this.playerScore);
   },
+
+  triggerWave: function(player, trigger) {
+    var i, n, enemy, squad, waveData, nowOptions;
+    
+    if (!trigger.live) return;
+    trigger.live = false;
+    
+    waveData = this.levelData.waves[trigger.waveNumber];
+
+    for (i = 0; i < waveData.squads.length; i++) {
+      squad = waveData.squads[i];
+
+      for (n = 0; n < squad.quantity; n++){
+        nowOptions = {};
+        if (squad.x == 'right') {nowOptions.viewX = true;}
+
+        // Build data to go into closure
+        enemy = Object.create(null);
+        enemy.x = squad.x == 'left' ? 0 : nowOptions.viewX;
+        enemy.y = squad.y == 'rnd' ? game.rnd.integerInRange(78,272) : squad.y;
+        enemy.type = squad.type;
+        enemy.timeout = squad.interval * n;
+
+        function spawnCallback(enemyEnt){
+          var enemyEnt = enemyEnt;
+
+          return function(nowOpts){
+            game.time.events.add(enemyEnt.timeout, function(){
+              if (nowOpts.viewX) {enemyEnt.x = game.camera.x + game.camera.view.width};
+
+              this.addEnemy(game, enemyEnt.x, enemyEnt.y, enemyEnt.type);
+            }.bind(this));
+          };
+        };
+
+        spawnCallback(enemy).bind(this)(nowOptions);
+      } 
+    }
+  },
+
 
   shoot: function(){
     if (this.bulletGroup.countLiving() > 50) { return; }
@@ -180,12 +178,7 @@ Bongquest.MainState.prototype = {
     }
   },
 
-  addBullet: function(game, cat){
-    var bullet = new Bullet(game, this.cat);
-    this.bulletGroup.add(bullet);
 
-    return bullet;
-  },
 
   onBulletHit: function (obj1, obj2) {
     function doBullet (bullet, target) {
@@ -196,8 +189,14 @@ Bongquest.MainState.prototype = {
           target.kill();
         }, 100);
       }
-    };
-    (obj2.key) ? doBullet(obj1, obj2) : doBullet(obj1);
+    }
+    if (obj2.key) {
+      doBullet(obj1, obj2);
+      this.playerScore += obj2.pointsValue;
+    } else {
+      doBullet(obj1);
+    }
+          
   },
 
   onEnemyTouch: function() {
