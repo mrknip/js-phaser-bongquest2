@@ -1,6 +1,7 @@
 'use strict';
+var Bullet = Bullet || {};
 
-function Bullet (game, cat) {
+var Bullet = function(game, cat) {
   Phaser.Sprite.call(this, game, cat.body.x, cat.body.y, 'bullet', 0);
   game.physics.arcade.enable(this);
 
@@ -46,3 +47,4 @@ Bullet.prototype.onHit = function (){
   }.bind(this), 500);
 }
 
+module.exports = Bullet;

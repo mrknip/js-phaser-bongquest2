@@ -1,6 +1,8 @@
 'use strict';
 
-function Cat (game, x,y, sprite) {
+var Cat;
+
+var Cat = function(game, x,y, sprite) {
   Phaser.Sprite.call(this, game, x, y, sprite);
 
   game.physics.arcade.enable(this);
@@ -120,7 +122,6 @@ Enemy.prototype.setTarget = function(cat) {
 }
 
 Enemy.prototype.update = function() {
-
   if (this.updatePathDue) this.setNewPathToTarget(this.nextPosition);
   this.move();
 
@@ -137,25 +138,27 @@ Enemy.prototype.reachedPosition = function (pos) {
 Enemy.prototype.setNewPathToTarget = function(pathStart) {
   var start;
   this.updatePathDue = false;
-  
-  game.pathfinder.setCallbackFunction(function(res) {
+  console.log(this);
+  this.game.pathfinder.setCallbackFunction(function(res) {
       var path = [];
       if (res != null) {
-        path = res.map((point) => game.pathfinder.getPixelFromCoord(point))
+        res.forEach(function(point){
+          path.push(this.game.pathfinder.getPixelFromCoord(point))
+        }.bind(this));
       }
       this.setPath(path);
   }.bind(this));
 
   start = arguments[0] ? pathStart : this
 
-  game.pathfinder.preparePathCalculation(
-    game.pathfinder.getTileXY(start), 
-    game.pathfinder.getTileXY(this.target)
+  this.game.pathfinder.preparePathCalculation(
+    this.game.pathfinder.getTileXY(start), 
+    this.game.pathfinder.getTileXY(this.target)
   )
 
-  game.pathfinder.calculatePath();
+  this.game.pathfinder.calculatePath();
 
-  game.time.events.add(Phaser.Timer.SECOND * 1, function(){
+  this.game.time.events.add(Phaser.Timer.SECOND * 1, function(){
     if (this.alive) {
       this.updatePathDue = true;
       this.setNewPathToTarget(this.nextPosition);  
@@ -211,4 +214,11 @@ Enemy.prototype.animate = function () {
   }
 }
 
-    
+var Entity = Entity || {};
+
+Entity = {
+  Cat: Cat,
+  Enemy: Enemy
+}
+
+module.exports = Entity;

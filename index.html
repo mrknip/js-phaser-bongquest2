@@ -9,12 +9,14 @@
   <script type="text/javascript" src="lib/phaser.js"></script>
   <script type="text/javascript" src="lib/phaser_pathfinding-0.2.0.js"></script>
   
-  <script type="text/javascript" src="js/loadingstate.js"></script>
+  <script type="text/javascript" src="public/bongquest2.js"></script>
+
+<!--   <script type="text/javascript" src="js/loadingstate.js"></script>
   <script type="text/javascript" src="js/bootstate.js"></script>
   <script type="text/javascript" src="js/main.js"></script>
   
   <script type="text/javascript" src="js/entity.js"></script>
-  <script type="text/javascript" src="js/bullet.js"></script>
+  <script type="text/javascript" src="js/bullet.js"></script> -->
     <style type="text/css">
       body { margin: 0; }
 
@@ -30,11 +32,11 @@
 </body>
 <script type="text/javascript">
   
-    var game = new Phaser.Game(640, 320, Phaser.AUTO, 'gameDiv');
-        game.state.add('boot', Bongquest.BootState);
-        game.state.add('load', Bongquest.LoadingState);
-        game.state.add('main', Bongquest.MainState);
-        game.state.start('boot', true, false, "\/data\/levels.json", 'main');
+    // var game = new Phaser.Game(640, 320, Phaser.AUTO, 'gameDiv');
+    //     game.state.add('boot', Bongquest.BootState);
+    //     game.state.add('load', Bongquest.LoadingState);
+    //     game.state.add('main', Bongquest.MainState);
+    //     game.state.start('boot', true, false, "\/data\/levels.json", 'main');
   
 </script>
 </html>

@@ -1,20 +1,20 @@
 "use strict";
 
-var Bongquest = Bongquest || {};
+var LoadingState = LoadingState || {};
 
-Bongquest.LoadingState = function() {
+LoadingState = function() {
   Phaser.State.call(this)
 
 }
-Bongquest.LoadingState.prototype = Object.create(Phaser.State.prototype);
-Bongquest.LoadingState.constructor = Bongquest.constructor;
+LoadingState.prototype = Object.create(Phaser.State.prototype);
+LoadingState.constructor = constructor;
 
-Bongquest.LoadingState.prototype.init = function (levelData, nextState) {
+LoadingState.prototype.init = function (levelData, nextState) {
   this.levelData = levelData;
   this.nextState = nextState;
 }
 
-Bongquest.LoadingState.prototype.preload = function () {
+LoadingState.prototype.preload = function () {
   var assets, key, asset, path, text;
   assets = this.levelData.assets;
 
@@ -39,7 +39,7 @@ Bongquest.LoadingState.prototype.preload = function () {
   }
 }
 
-Bongquest.LoadingState.prototype.addProgressBar = function (assets) {
+LoadingState.prototype.addProgressBar = function (assets) {
   this._loadingBar = this.add.sprite(this.world.centerX - this.levelData.loadbar.width / 2, 
                                      this.world.centerY, 
                                      this.levelData.loadbar.key);            
@@ -49,8 +49,10 @@ Bongquest.LoadingState.prototype.addProgressBar = function (assets) {
   this.load.onLoadComplete.add(this.onLoadComplete, this)
 }
 
-Bongquest.LoadingState.prototype.onLoadComplete = function () {
-   this.time.events.add(Phaser.Timer.HALF, function(){
+LoadingState.prototype.onLoadComplete = function () {
+  this.time.events.add(Phaser.Timer.HALF, function(){
     this.game.state.start('main', true, false, this.levelData);
   }, this)
 }
+
+module.exports = LoadingState;

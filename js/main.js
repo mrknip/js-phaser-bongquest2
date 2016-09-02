@@ -1,9 +1,9 @@
 'use strict';
 
-var Bongquest = Bongquest || {};
+var MainState = MainState || {};
 // Don't forget hack in Phaser getBounds (87780)
 
-Bongquest.MainState = function (game) {
+MainState = function (game) {
   this.map;
   this.layer;
 
@@ -16,7 +16,7 @@ Bongquest.MainState = function (game) {
   this.playerScoreText;
 };
 
-Bongquest.MainState.prototype = {
+MainState.prototype = {
 
   init: function(levelData) {
     this.levelData = levelData
@@ -31,21 +31,21 @@ Bongquest.MainState.prototype = {
   },
 
   create: function() {
-    game.physics.startSystem(Phaser.Physics.ARCADE);
+    this.game.physics.startSystem(Phaser.Physics.ARCADE);
     this.reset();
     
     // Add tilemap, bg and collision layer
     this.loadLevel('level1');
     
     // Add actors
-    this.cat = this.addCat(game, 64, 160, 'bongo');
+    this.cat = this.addCat(this.game, 64, 160, 'bongo');
 
-    this.bulletGroup = game.add.group();
-    this.enemiesGroup = game.add.group();
-    this.triggerGroup = game.add.group();
+    this.bulletGroup = this.game.add.group();
+    this.enemiesGroup = this.game.add.group();
+    this.triggerGroup = this.game.add.group();
 
-    this.testPowerUp = game.add.sprite(832  , 96, 'bullet');
-    game.physics.enable(this.testPowerUp);
+    this.testPowerUp = this.game.add.sprite(832  , 96, 'bullet');
+    this.game.physics.enable(this.testPowerUp);
 
     // Add triggers
     this.addTriggers();
@@ -53,13 +53,13 @@ Bongquest.MainState.prototype = {
     // Add foreground
     this.foreground = this.map.createLayer('trees');
     // Controls 
-    this.cursors = game.input.keyboard.createCursorKeys();
-    this.shootButton = game.input.keyboard.addKey(Phaser.Keyboard.CONTROL);
+    this.cursors = this.game.input.keyboard.createCursorKeys();
+    this.shootButton = this.game.input.keyboard.addKey(Phaser.Keyboard.CONTROL);
     
-    game.pathfinder = game.plugins.add(Phaser.Plugin.PathFinderPlugin, this.collisionLayer);
+    this.game.pathfinder = this.game.plugins.add(Phaser.Plugin.PathFinderPlugin, this.collisionLayer);
 
-    game.camera.follow(this.cat);
-    this.playerScoreText = game.add.text(16, 16, this.playerScore, {font: 'ubuntu 16px', fill: '#fff'})
+    this.game.camera.follow(this.cat);
+    this.playerScoreText = this.game.add.text(16, 16, this.playerScore, {font: 'ubuntu 16px', fill: '#fff'})
     this.playerScoreText.fixedToCamera = true;
   },
 
@@ -67,8 +67,8 @@ Bongquest.MainState.prototype = {
     this.map.objects.triggers.forEach(function(data){
       var trigger, property;
 
-      trigger = game.add.sprite(data.x, data.y, null);
-      game.physics.arcade.enable(trigger);
+      trigger = this.game.add.sprite(data.x, data.y, null);
+      this.game.physics.arcade.enable(trigger);
       trigger.body.setSize(data.width, data.height, 0 ,0)
 
       for (property in data.properties) {
@@ -80,7 +80,7 @@ Bongquest.MainState.prototype = {
   },
 
   loadLevel: function(level) {
-    this.map = game.add.tilemap(level);
+    this.map = this.game.add.tilemap(level);
     this.map.addTilesetImage('grassy', 'tiles');
     this.map.addTilesetImage('tree', 'tree')
     this.layer = this.map.createLayer('background');
@@ -93,15 +93,15 @@ Bongquest.MainState.prototype = {
   },
 
   addCat: function(game, x,y, sprite) {
-    var cat = new Cat(game, x, y, sprite);
-    game.add.existing(cat);
+    var cat = new Entity.Cat(game, x, y, sprite);
+    this.game.add.existing(cat);
     return cat;
   },
 
   addEnemy: function(game, x,y, sprite) {
-    var elvis = new Enemy(game, x, y, sprite);
+    var elvis = new Entity.Enemy(game, x, y, sprite);
     elvis.setTarget(this.cat);
-    game.add.existing(elvis);
+    this.game.add.existing(elvis);
     this.enemiesGroup.add(elvis);
     return elvis;
   },
@@ -114,16 +114,16 @@ Bongquest.MainState.prototype = {
   },
 
   update: function() {
-    game.physics.arcade.collide(this.cat, this.collisionLayer);
-    game.physics.arcade.collide(this.cat, this.enemiesGroup, this.onEnemyTouch);
-    game.physics.arcade.collide(this.enemiesGroup, this.collisionLayer);
-    game.physics.arcade.collide(this.bulletGroup, this.enemiesGroup, this.onBulletHit, null, this);
-    game.physics.arcade.collide(this.bulletGroup, this.collisionLayer, this.onBulletHit, null, this);
+    this.game.physics.arcade.collide(this.cat, this.collisionLayer);
+    this.game.physics.arcade.collide(this.cat, this.enemiesGroup, this.onEnemyTouch, null, this);
+    this.game.physics.arcade.collide(this.enemiesGroup, this.collisionLayer);
+    this.game.physics.arcade.collide(this.bulletGroup, this.enemiesGroup, this.onBulletHit, null, this);
+    this.game.physics.arcade.collide(this.bulletGroup, this.collisionLayer, this.onBulletHit, null, this);
 
-    game.physics.arcade.collide(this.enemiesGroup);
+    this.game.physics.arcade.collide(this.enemiesGroup);
 
-    game.physics.arcade.overlap(this.cat, this.triggerGroup, this.triggerWave, null, this);
-    game.physics.arcade.overlap(this.cat, this.testPowerUp, this.powerUp, null, this);
+    this.game.physics.arcade.overlap(this.cat, this.triggerGroup, this.triggerWave, null, this);
+    this.game.physics.arcade.overlap(this.cat, this.testPowerUp, this.powerUp, null, this);
 
     // Move Player
     this.cat.move(this.cursors);
@@ -160,7 +160,7 @@ Bongquest.MainState.prototype = {
         // Build data to go into closure
         enemy = Object.create(null);
         enemy.x = squad.x == 'left' ? 0 : nowOptions.viewX;
-        enemy.y = squad.y == 'rnd' ? game.rnd.integerInRange(78,272) : squad.y;
+        enemy.y = squad.y == 'rnd' ? this.game.rnd.integerInRange(78,272) : squad.y;
         enemy.type = squad.type;
         enemy.timeout = squad.interval * n;
 
@@ -168,10 +168,10 @@ Bongquest.MainState.prototype = {
           var enemyEnt = enemyEnt;
 
           return function(nowOpts){
-            game.time.events.add(enemyEnt.timeout, function(){
-              if (nowOpts.viewX) {enemyEnt.x = game.camera.x + game.camera.view.width};
+            this.game.time.events.add(enemyEnt.timeout, function(){
+              if (nowOpts.viewX) {enemyEnt.x = this.game.camera.x + this.game.camera.view.width};
 
-              this.addEnemy(game, enemyEnt.x, enemyEnt.y, enemyEnt.type);
+              this.addEnemy(this.game, enemyEnt.x, enemyEnt.y, enemyEnt.type);
             }.bind(this));
           };
         };
@@ -219,15 +219,15 @@ Bongquest.MainState.prototype = {
 
       this.rectangle = directions[cat.facing];
       this.enemiesGroup.forEachAlive(function(enemy){
-        if (this.rectangle.intersects(enemy.getBounds().offset(game.camera.x, game.camera.y))) {
-          game.time.events.add(300, function(){
+        if (this.rectangle.intersects(enemy.getBounds().offset(this.game.camera.x, this.game.camera.y))) {
+          this.game.time.events.add(300, function(){
             this.playerScore += enemy.pointsValue;
             enemy.kill();
           }, this);
         }
       },this);
 
-      game.time.events.add(300, function(){
+      this.game.time.events.add(300, function(){
         this.attackDelaySet = false;
         cat.attacking = false;
       }, this);
@@ -238,10 +238,10 @@ Bongquest.MainState.prototype = {
     if (this.bulletGroup.countLiving() > 50) { return; }
 
     if (this.bulletDelaySet == false) {
-      var bullet = this.addBullet(game, this.cat);
+      var bullet = this.addBullet(this.game, this.cat);
       this.bulletDelaySet = true;
       
-      game.time.events.add(200, function(){
+      this.game.time.events.add(200, function(){
         this.bulletDelaySet = false;
       }, this);
     }
@@ -267,18 +267,19 @@ Bongquest.MainState.prototype = {
   },
 
   onEnemyTouch: function() {
-    game.camera.shake(0.01, 250);
+    this.game.camera.shake(0.01, 250);
   },
 
   render: function(){
     // function renderGroup(member) {    
-    //   game.debug.body(member);
+    //   this.game.debug.body(member);
     // }
     // this.enemiesGroup.forEachAlive(renderGroup, this);
-    // game.debug.body(this.cat);
+    // this.game.debug.body(this.cat);
 
-    // game.debug.geom(this.rectangle, 'rgba(0,0,255,0.5)');
+    // this.game.debug.geom(this.rectangle, 'rgba(0,0,255,0.5)');
   }
 };
 
 
+module.exports = MainState;

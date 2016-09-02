@@ -1,0 +1,28 @@
+{
+  "name": "bongquest2",
+  "version": "0.0.1",
+  "description": "Bongo-themed top down Zeldaesque Bong 'em up",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrknip/js-phaser-bongquest2.git"
+  },
+  "keywords": [
+    "Bongo",
+    "Phaser"
+  ],
+  "author": "mrknip",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mrknip/js-phaser-bongquest2/issues"
+  },
+  "homepage": "https://github.com/mrknip/js-phaser-bongquest2#readme",
+  "devDependencies": {
+    "grunt": "^1.0.1",
+    "grunt-browserify": "^5.0.0",
+    "grunt-contrib-jshint": "^1.0.0",
+    "grunt-contrib-uglify": "^2.0.0"
+  }
+}
