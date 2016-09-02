@@ -1,5 +1,8 @@
 'use strict';
 
+var Entity = require('./entity.js');
+var Bullet = require('./bullet.js');
+
 var MainState = MainState || {};
 // Don't forget hack in Phaser getBounds (87780)
 
@@ -14,6 +17,7 @@ MainState = function (game) {
 
   this.playerScore;
   this.playerScoreText;
+
 };
 
 MainState.prototype = {

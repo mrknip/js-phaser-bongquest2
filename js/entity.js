@@ -138,7 +138,6 @@ Enemy.prototype.reachedPosition = function (pos) {
 Enemy.prototype.setNewPathToTarget = function(pathStart) {
   var start;
   this.updatePathDue = false;
-  console.log(this);
   this.game.pathfinder.setCallbackFunction(function(res) {
       var path = [];
       if (res != null) {
