@@ -2,6 +2,12 @@ module.exports = function (grunt) {
   
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
+    jshint: {
+      all:['js/*.js'],
+      options:{
+        jshintrc: '.jshintrc'
+      }
+    },
     uglify: {
       options: {
       banner: '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> */\n'
@@ -13,19 +19,12 @@ module.exports = function (grunt) {
     },
 
     browserify: {
-      dist: {
-        files: {
-          "public/<%= pkg.name%>.js": 
-            [
-              "js/index.js"
-            ]
-        }
-      }
-
+      "public/<%= pkg.name%>.js": ["js/index.js"]
     }
   });
 
   grunt.loadNpmTasks('grunt-contrib-uglify');
+  grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-browserify');
 
   grunt.registerTask('default', ['browserify', 'uglify']);

@@ -1,4 +1,5 @@
 'use strict';
+
 var Bullet = Bullet || {};
 
 var Bullet = function(game, cat) {
@@ -6,10 +7,9 @@ var Bullet = function(game, cat) {
   game.physics.arcade.enable(this);
 
   this.init(cat);
-}
+};
 
-Bullet.prototype = Object.create(Phaser.Sprite.prototype)
-
+Bullet.prototype = Object.create(Phaser.Sprite.prototype);
 Bullet.constructor = Bullet;
 
 Bullet.prototype.init = function(cat) {
@@ -22,20 +22,20 @@ Bullet.prototype.init = function(cat) {
 
   this.animations.add('explode', [1,2,3,4,5,6,7,8]);
 
-  if (cat.facing == 'left'){
+  if (cat.facing === 'left'){
       this.x -= 16;
       this.body.velocity.x = -400;
-  } else if (cat.facing == 'right'){
+  } else if (cat.facing === 'right'){
       this.x += 16;
       this.body.velocity.x = 400;
-  } else if (cat.facing == 'up'){
+  } else if (cat.facing === 'up'){
       this.y -=16;
       this.body.velocity.y = -400;
-  } else if (cat.facing == 'down'){
+  } else if (cat.facing === 'down'){
       this.y += 16;
       this.body.velocity.y = 400;
   }
-}
+};
 
 Bullet.prototype.onHit = function (){
   this.animations.play('explode', 16, false);
@@ -45,6 +45,6 @@ Bullet.prototype.onHit = function (){
   setTimeout(function(){
     this.kill();
   }.bind(this), 500);
-}
+};
 
 module.exports = Bullet;

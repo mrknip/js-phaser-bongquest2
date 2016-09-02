@@ -4,26 +4,27 @@ var Entity = require('./entity.js');
 var Bullet = require('./bullet.js');
 
 var MainState = MainState || {};
+
 // Don't forget hack in Phaser getBounds (87780)
 
-MainState = function (game) {
-  this.map;
-  this.layer;
+MainState = function () {
+  // this.map;
+  // this.layer;
 
-  this.bulletDelaySet;
-  this.attackDelaySet;
-  this.spawnDue;
-  this.nextWave;
+  // this.bulletDelaySet;
+  // this.attackDelaySet;
+  // this.spawnDue;
+  // this.nextWave;
 
-  this.playerScore;
-  this.playerScoreText;
+  // this.playerScore;
+  // this.playerScoreText;
 
 };
 
 MainState.prototype = {
 
   init: function(levelData) {
-    this.levelData = levelData
+    this.levelData = levelData;
   },
  
   reset: function () {
@@ -63,7 +64,7 @@ MainState.prototype = {
     this.game.pathfinder = this.game.plugins.add(Phaser.Plugin.PathFinderPlugin, this.collisionLayer);
 
     this.game.camera.follow(this.cat);
-    this.playerScoreText = this.game.add.text(16, 16, this.playerScore, {font: 'ubuntu 16px', fill: '#fff'})
+    this.playerScoreText = this.game.add.text(16, 16, this.playerScore, {font: 'ubuntu 16px', fill: '#fff'});
     this.playerScoreText.fixedToCamera = true;
   },
 
@@ -73,20 +74,22 @@ MainState.prototype = {
 
       trigger = this.game.add.sprite(data.x, data.y, null);
       this.game.physics.arcade.enable(trigger);
-      trigger.body.setSize(data.width, data.height, 0 ,0)
+      trigger.body.setSize(data.width, data.height, 0 ,0);
 
       for (property in data.properties) {
-        trigger[property] = data.properties[property];
+        if (data.properties.hasOwnProperty(property)) {
+          trigger[property] = data.properties[property];
+        }
       }
       
       this.triggerGroup.add(trigger);    
-    }.bind(this))
+    }.bind(this));
   },
 
   loadLevel: function(level) {
     this.map = this.game.add.tilemap(level);
     this.map.addTilesetImage('grassy', 'tiles');
-    this.map.addTilesetImage('tree', 'tree')
+    this.map.addTilesetImage('tree', 'tree');
     this.layer = this.map.createLayer('background');
     this.layer.resizeWorld();
     this.bgObjLayer = this.map.createLayer('bg objects');
@@ -111,7 +114,7 @@ MainState.prototype = {
   },
 
   addBullet: function(game, cat){
-    var bullet = new Bullet(game, this.cat);
+    var bullet = new Bullet(game, cat);
     this.bulletGroup.add(bullet);
 
     return bullet;
@@ -134,61 +137,64 @@ MainState.prototype = {
     this.cat.animate();
 
     if (this.shootButton.isDown) { 
-      this.cat.attackMode === 'shoot' ? this.shoot() : this.meleeAttack(this.cat); 
+      if (this.cat.attackMode === 'shoot') {
+        this.shoot();
+      } else {
+        this.meleeAttack(this.cat); 
+      }
     }
 
     this.playerScoreText.setText(this.playerScore);
   },
 
   powerUp: function(cat, powerup) {
-    console.log(cat)
     powerup.kill();
     this.cat.attackMode = 'shoot';
   },
 
   triggerWave: function(player, trigger) {
+    /*jshint validthis: true*/
+    
     var i, n, enemy, squad, waveData, nowOptions;
     
-    if (!trigger.live) return;
+    if (!trigger.live) { return; }
     trigger.live = false;
-    
     waveData = this.levelData.waves[trigger.waveNumber];
+    
+    function spawnCallback(enemyEnt){
+      return function(nowOpts){
+        this.game.time.events.add(enemyEnt.timeout, function(){
+          if (nowOpts.viewX) {
+            enemyEnt.x = this.game.camera.x + this.game.camera.view.width;
+          }
+
+          this.addEnemy(this.game, enemyEnt.x, enemyEnt.y, enemyEnt.type);
+        }.bind(this));
+      };
+    }
 
     for (i = 0; i < waveData.squads.length; i++) {
       squad = waveData.squads[i];
 
       for (n = 0; n < squad.quantity; n++){
         nowOptions = {};
-        if (squad.x == 'right') {nowOptions.viewX = true;}
+        if (squad.x === 'right') {nowOptions.viewX = true;}
 
-        // Build data to go into closure
         enemy = Object.create(null);
-        enemy.x = squad.x == 'left' ? 0 : nowOptions.viewX;
-        enemy.y = squad.y == 'rnd' ? this.game.rnd.integerInRange(78,272) : squad.y;
+        enemy.x = squad.x === 'left' ? 0 : 'now';
+        enemy.y = squad.y === 'rnd' ? this.game.rnd.integerInRange(78,272) : squad.y;
         enemy.type = squad.type;
         enemy.timeout = squad.interval * n;
-
-        function spawnCallback(enemyEnt){
-          var enemyEnt = enemyEnt;
-
-          return function(nowOpts){
-            this.game.time.events.add(enemyEnt.timeout, function(){
-              if (nowOpts.viewX) {enemyEnt.x = this.game.camera.x + this.game.camera.view.width};
-
-              this.addEnemy(this.game, enemyEnt.x, enemyEnt.y, enemyEnt.type);
-            }.bind(this));
-          };
-        };
-
         spawnCallback(enemy).bind(this)(nowOptions);
-      } 
-    }
+      }
+
+    } 
   },
 
   meleeAttack: function(cat){
-    var directions, catXY, catTileXY, targetXY, targetTileXY;
+    var directions;
     
-    if (this.attackDelaySet == false) {
+    if (this.attackDelaySet === false) {
       this.attackDelaySet = true;
 
 
@@ -207,17 +213,17 @@ MainState.prototype = {
         'down':  new Phaser.Rectangle(this.cat.x - meleeSide / 2, 
                                       this.cat.y + this.cat.body.height / 2, 
                                       meleeSide, meleeFront),
-      }
+      };
     
       cat.attacking = true;
       
-      if (cat.facing == 'left') {
+      if (cat.facing === 'left') {
         cat.animations.play('swipel', 20, false);
-      } else if (cat.facing == 'right') {
+      } else if (cat.facing === 'right') {
         cat.animations.play('swiper', 20, false);
-      } else if (cat.facing == 'up') {
+      } else if (cat.facing === 'up') {
         cat.animations.play('swipeu', 15, false);
-      } else if (cat.facing == 'down') {
+      } else if (cat.facing === 'down') {
         cat.animations.play('swiped', 15, false);
       }
 
@@ -241,8 +247,8 @@ MainState.prototype = {
   shoot: function(){
     if (this.bulletGroup.countLiving() > 50) { return; }
 
-    if (this.bulletDelaySet == false) {
-      var bullet = this.addBullet(this.game, this.cat);
+    if (this.bulletDelaySet === false) {
+      this.addBullet(this.game, this.cat);
       this.bulletDelaySet = true;
       
       this.game.time.events.add(200, function(){
