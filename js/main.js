@@ -44,8 +44,6 @@ Bongquest.MainState.prototype = {
     this.enemiesGroup = game.add.group();
     this.triggerGroup = game.add.group();
 
-    // this.testEnemy = this.addEnemy(game, 96, 160, 'elvis');
-    // this.testEnemy.debug = true;
     this.testPowerUp = game.add.sprite(832  , 96, 'bullet');
     game.physics.enable(this.testPowerUp);
 
@@ -121,6 +119,8 @@ Bongquest.MainState.prototype = {
     game.physics.arcade.collide(this.enemiesGroup, this.collisionLayer);
     game.physics.arcade.collide(this.bulletGroup, this.enemiesGroup, this.onBulletHit, null, this);
     game.physics.arcade.collide(this.bulletGroup, this.collisionLayer, this.onBulletHit, null, this);
+
+    game.physics.arcade.collide(this.enemiesGroup);
 
     game.physics.arcade.overlap(this.cat, this.triggerGroup, this.triggerWave, null, this);
     game.physics.arcade.overlap(this.cat, this.testPowerUp, this.powerUp, null, this);
@@ -220,7 +220,6 @@ Bongquest.MainState.prototype = {
       this.rectangle = directions[cat.facing];
       this.enemiesGroup.forEachAlive(function(enemy){
         if (this.rectangle.intersects(enemy.getBounds().offset(game.camera.x, game.camera.y))) {
-          console.log("hit ", enemy);
           game.time.events.add(300, function(){
             this.playerScore += enemy.pointsValue;
             enemy.kill();

@@ -96,6 +96,7 @@ function Enemy (game, x, y, sprite) {
 
   this.moving = true;
   this.body.setSize(24, 24, 4, 4);
+
   this.speed = game.rnd.integerInRange(50, 150);
  
   this.animations.add('walkl', [0,1,2,3,4]);
