@@ -36,6 +36,13 @@
       "frameWidth": 32,
       "frameHeight": 32
     },
+    "swipe":
+    {
+      "type": "spritesheet",
+      "source": "swipe.png",
+      "frameWidth": 32,
+      "frameHeight": 32
+    },
     "treetiles":
     {
       "type": "image",
@@ -61,7 +68,7 @@
       [
         {
         "type": "elvis",
-        "quantity": 5,
+        "quantity": 3,
         "x": "left",
         "y": "rnd",
         "interval": 0

@@ -91,7 +91,7 @@ Entity.Cat.prototype.animate = function () {
 
 Entity.Cat.prototype.attack = function() {
   if (this.attacking) { return; }
-  console.log(this.attackMode);
+
   switch (this.attackMode) {
     case 'melee':
       var area = this.getMeleeArea();
@@ -106,8 +106,8 @@ Entity.Cat.prototype.getMeleeArea = function () {
 
   this.attacking = true;
 
-  var meleeFront = 32;
-  var meleeSide = 42;
+  var meleeFront = 24;
+  var meleeSide = 24;
   var directions = {
     'left':  new Phaser.Rectangle(this.x - meleeFront - this.body.width / 2, 
                                   this.y - meleeSide / 2, 
@@ -122,7 +122,13 @@ Entity.Cat.prototype.getMeleeArea = function () {
                                   this.y + this.body.height / 2, 
                                   meleeSide, meleeFront),
   };
-  
+  if (this.swipeAnim === undefined) {
+    this.swipeAnim = new Entity.Swipe(this.game, this.x, this.y, 'swipe')
+    this.swipeAnim.cat = this;
+    this.game.add.existing(this.swipeAnim);
+  };
+
+
   if (this.facing === 'left') {
     this.animations.play('swipel', 20, false);
   } else if (this.facing === 'right') {
@@ -132,12 +138,53 @@ Entity.Cat.prototype.getMeleeArea = function () {
   } else if (this.facing === 'down') {
     this.animations.play('swiped', 15, false);
   }
+  this.swipeAnim.play();
 
   this.game.time.events.add(300, function(){
     this.attacking = false;
   }, this);
 
   return directions[this.facing];
+};
+
+Entity.Swipe = function(game, x, y, sprite){
+  Phaser.Sprite.call(this, game, x, y, sprite);
+
+  this.anchor.setTo(0.5, 0.5);
+  this.visible = false;
+  this.animations.add('swipel', [0,1,2,3,4, 5, 6, 7]);
+  this.animations.add('swiper', [14,13,12,11,10,9,8,7]);
+  this.animations.add('swipeu', [15,16,17,18,19,20,21,7]);
+  this.animations.add('swiped', [22,23,24,25,26,27,28,7]);
+
+  console.log(this)
+};
+Entity.Swipe.prototype = Object.create(Phaser.Sprite.prototype);
+Entity.Swipe.constructor = Entity.Swipe; 
+Entity.Swipe.prototype.play = function(direction) {
+  this.visible = true;
+  switch (this.cat.facing) {
+    case 'left':
+      this.x = this.cat.x - 18;
+      this.y = this.cat.y;
+      this.animations.play('swipel', 30, false);
+      break;
+    case 'right':
+      this.x = this.cat.x + 18;
+      this.y = this.cat.y;
+      this.animations.play('swiper', 30, false)
+      break;
+    case 'up':
+      this.x = this.cat.x;
+      this.y = this.cat.y - 16;
+      this.animations.play('swipeu', 30, false)
+      break;
+    case 'down':
+      this.x = this.cat.x;
+      this.y = this.cat.y + 16;
+      this.animations.play('swiped', 30, false)
+      break;
+  };
 };
 
 /**
@@ -149,7 +196,6 @@ Entity.Enemy = function(game, x, y, sprite) {
   Phaser.Sprite.call(this, game, x, y, sprite);
   game.physics.arcade.enable(this);
   this.anchor.setTo(0.5, 0.5);
-
   this.moving = true;
   this.body.setSize(24, 24, 4, 4);
 
@@ -164,6 +210,7 @@ Entity.Enemy = function(game, x, y, sprite) {
   this.updatePathDue = true;
   this.path = [];
   this.pathStep = -1;
+  this.nextPosition = this.position;
 
   this.pointsValue = 5;
 };
@@ -176,13 +223,18 @@ Entity.Enemy.prototype.setTarget = function(cat) {
 };
 
 Entity.Enemy.prototype.update = function() {
-  if (this.updatePathDue) { this.setNewPathToTarget(this.nextPosition); }
+  if (this.updatePathDue) { 
+    this.setNewPathToTarget(this.nextPosition); 
+  }
   this.move();
 
   this.facing = this.body.velocity.x > 0 ? 'right' : 'left';
   this.animate();
 };
 
+/*
+* PATHFINDING
+*/
 Entity.Enemy.prototype.reachedPosition = function (pos) {
   var distance;
   distance = Phaser.Point.distance(this.position, pos);
@@ -210,7 +262,9 @@ Entity.Enemy.prototype.setNewPathToTarget = function(pathStart) {
     this.game.pathfinder.getTileXY(this.target)
   );
 
-  this.game.pathfinder.calculatePath();
+  this.game.time.events.add(50 * this.game.rnd.integerInRange(0, 10), function(){
+    this.game.pathfinder.calculatePath();
+  }, this);
 
     // this.game.time.events.add(Phaser.Timer.SECOND * 1, function(){
     //   if (this.alive) {
@@ -220,9 +274,6 @@ Entity.Enemy.prototype.setNewPathToTarget = function(pathStart) {
     // }, this);
 };
 
-/**
-* @param path {array}
-*/
 Entity.Enemy.prototype.setPath = function (path) {
   if (path !== null) {
     this.path = path;
@@ -237,15 +288,10 @@ Entity.Enemy.prototype.move = function() {
   if (this.debug) { return; }
 
   if (this.path.length <= 0) { return; }
+
   this.nextPosition = this.path[this.pathStep];
-  if (!this.reachedPosition(this.nextPosition)) {
-    vector = Phaser.Point.subtract(this.nextPosition, this.position);
-    vector.normalize();
 
-    this.body.velocity.x = vector.x * this.speed;
-    this.body.velocity.y = vector.y * this.speed;
-
-  } else {
+  if (this.reachedPosition(this.nextPosition)) {
     this.position.copyFrom(this.nextPosition);
     if (this.pathStep < this.path.length - 1) {
       this.pathStep += 1;
@@ -256,7 +302,16 @@ Entity.Enemy.prototype.move = function() {
       this.body.velocity.y = 0;
       this.setNewPathToTarget();
     }
+    return;
   }
+  
+
+  vector = Phaser.Point.subtract(this.nextPosition, this.position);
+  vector.normalize();
+
+  this.body.velocity.x = vector.x * this.speed;
+  this.body.velocity.y = vector.y * this.speed;
+
 };
 
 Entity.Enemy.prototype.animate = function () {
@@ -270,5 +325,9 @@ Entity.Enemy.prototype.animate = function () {
     }
   }
 };
+
+Entity.Enemy.prototype.render = function () {
+  this.game.debug.geom(this.rect, 'rgba(0,0,255,0.3)')
+}
 
 module.exports = Entity;

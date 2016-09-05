@@ -34,6 +34,8 @@ MainState.prototype = {
 
     this.hud = this.addHud();
 
+
+
     // Controls 
     this.game.ui = {};
     this.game.ui.cursors = this.game.input.keyboard.createCursorKeys();
@@ -69,6 +71,7 @@ MainState.prototype = {
   addEnemy: function(game, x,y, sprite) {
     var elvis = new Entity.Enemy(game, x, y, sprite);
     elvis.setTarget(this.cat);
+    elvis.coordinator = this;  // HACK WARNING - need to think about who coordinates here
     this.game.add.existing(elvis);
     this.enemiesGroup.add(elvis);
     return elvis;
@@ -106,9 +109,16 @@ MainState.prototype = {
     // Where does this live?
 
     var movedTile = new Phaser.Signal()
+    
     movedTile.add(function(newTile){
       this.enemiesGroup.forEachAlive(function(enemy){
-        enemy.updatePathDue = true;
+        if (!this.updatingPathOnPlayerMove) {
+          this.updatingPathOnPlayerMove = true;
+          this.game.time.events.add(Phaser.Timer.HALF, function(){
+            this.updatingPathOnPlayerMove
+          }, this);
+          enemy.updatePathDue = true;
+        }
       }, this);
     }, this);
 
@@ -118,14 +128,20 @@ MainState.prototype = {
     }
 
     // ************************
-
     // Handle player attacks
     if (this.game.ui.shootButton.isDown) { 
       var attack = this.cat.attack();
-      console.log(attack);
-      if (attack === undefined) {
-        return;
-      } else if (attack.type && attack.type === 'melee') {
+
+      if (attack !== undefined) { this.processAttack(attack); };        
+    }
+
+    this.playerScoreText.setText(this.playerScore);
+  },
+
+  processAttack: function (attack) {
+    switch (attack.type) {
+      case 'melee':
+        this.rectangle = attack.area;
         this.enemiesGroup.forEachAlive(function(enemy){
           if (attack.area.intersects(enemy.getBounds().offset(this.game.camera.x, this.game.camera.y))) {
             this.game.time.events.add(300, function(){
@@ -134,13 +150,12 @@ MainState.prototype = {
             }, this);
           }
         }, this);
-      } else if (attack.type && attack.type === 'ranged') {
-        console.log(attack.bulletType)
-        this.shoot();
-      }
-    }
+        break;
 
-    this.playerScoreText.setText(this.playerScore);
+      case 'ranged':
+        this.shoot();
+        break;
+    }
   },
 
   powerUp: function(cat, powerup) {
@@ -187,58 +202,6 @@ MainState.prototype = {
     }
   },
 
-  meleeAttack: function(cat){
-    var directions;
-    
-    if (this.attackDelaySet === false) {
-      this.attackDelaySet = true;
-
-      var meleeFront = 32;
-      var meleeSide = 42;
-      directions = {
-        'left':  new Phaser.Rectangle(this.cat.x - meleeFront - this.cat.body.width / 2, 
-                                      this.cat.y - meleeSide / 2, 
-                                      meleeFront, meleeSide),
-        'right': new Phaser.Rectangle(this.cat.x + this.cat.body.width / 2, 
-                                      this.cat.y - meleeSide / 2, 
-                                      meleeFront, meleeSide),
-        'up':    new Phaser.Rectangle(this.cat.x - meleeSide / 2, 
-                                      this.cat.y - meleeFront - this.cat.body.height / 2,
-                                      meleeSide, meleeFront),
-        'down':  new Phaser.Rectangle(this.cat.x - meleeSide / 2, 
-                                      this.cat.y + this.cat.body.height / 2, 
-                                      meleeSide, meleeFront),
-      };
-    
-      cat.attacking = true;
-      
-      if (cat.facing === 'left') {
-        cat.animations.play('swipel', 20, false);
-      } else if (cat.facing === 'right') {
-        cat.animations.play('swiper', 20, false);
-      } else if (cat.facing === 'up') {
-        cat.animations.play('swipeu', 15, false);
-      } else if (cat.facing === 'down') {
-        cat.animations.play('swiped', 15, false);
-      }
-
-      this.rectangle = directions[cat.facing];
-      this.enemiesGroup.forEachAlive(function(enemy){
-        if (this.rectangle.intersects(enemy.getBounds().offset(this.game.camera.x, this.game.camera.y))) {
-          this.game.time.events.add(300, function(){
-            this.playerScore += enemy.pointsValue;
-            enemy.kill();
-          }, this);
-        }
-      },this);
-
-      this.game.time.events.add(300, function(){
-        this.attackDelaySet = false;
-        cat.attacking = false;
-      }, this);
-    }    
-  },
-
   shoot: function(){
     if (this.bulletGroup.countLiving() > 50) { return; }
 
@@ -276,26 +239,16 @@ MainState.prototype = {
   },
 
   render: function(){
-  //   function renderGroup(member) {    
-  //     this.game.debug.body(member);
-  //   }
-  //   this.enemiesGroup.forEachAlive(renderGroup, this);
-  //   this.game.debug.body(this.cat);
-  //   // function allEnemyTiles(){
-      
-  //   // };
+    
 
-  //   var enemyTiles = this.allEnemyTiles();
-
-
-  //   enemyTiles.forEach(function(enemyTile){
-  //     var tileCentre = this.map.getPixelXY(enemyTile); 
-  //     var rectangle = new Phaser.Rectangle(tileCentre.x - 16, tileCentre.y - 16, 32, 32);
-  //     this.game.debug.geom(rectangle, 'rgba(255, 0, 0, 0.5');
-  //   }, this);
-
-  //   // this.game.debug.geom(this.rectangle, 'rgba(0,0,255,0.5)');
-  // },
+    // function renderGroup(member) {    
+    //   this.game.debug.body(member);
+    // }
+    // this.enemiesGroup.forEachAlive(renderGroup, this);
+    // this.game.debug.body(this.cat);
+    // this.game.debug.geom(this.rectangle, 'rgba(0,0,255,0.5)');
+    
+  },
 
   // allEnemyTiles: function(){
   //   var tiles = []
@@ -304,8 +257,7 @@ MainState.prototype = {
   //   }, this); 
   //   return tiles;
   // }
-  }
+  // }
 };
-
 
 module.exports = MainState;
