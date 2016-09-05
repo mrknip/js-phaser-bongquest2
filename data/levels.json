@@ -68,9 +68,9 @@
       [
         {
         "type": "elvis",
-        "quantity": 3,
+        "quantity": 5,
         "x": "left",
-        "y": "rnd",
+        "y": [2,3,5,6,7],
         "interval": 0
         }
       ]

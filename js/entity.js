@@ -28,7 +28,7 @@ Entity.Cat = function(game, x,y, sprite) {
 };
 
 Entity.Cat.prototype = Object.create(Phaser.Sprite.prototype);
-Entity.Cat.constructor = Entity.Cat;
+Entity.Cat.prototype.constructor = Entity.Cat;
 
 Entity.Cat.prototype.update = function () {
     this.move(this.game.ui.cursors);
@@ -95,7 +95,7 @@ Entity.Cat.prototype.attack = function() {
   switch (this.attackMode) {
     case 'melee':
       var area = this.getMeleeArea();
-      return {type: 'melee', area: area};
+      return {type: 'melee', properties: area};
     case 'ranged':
       return {type: 'ranged', bulletType: 'boring'};
   };
@@ -108,6 +108,8 @@ Entity.Cat.prototype.getMeleeArea = function () {
 
   var meleeFront = 24;
   var meleeSide = 24;
+  var force;
+
   var directions = {
     'left':  new Phaser.Rectangle(this.x - meleeFront - this.body.width / 2, 
                                   this.y - meleeSide / 2, 
@@ -128,6 +130,16 @@ Entity.Cat.prototype.getMeleeArea = function () {
     this.game.add.existing(this.swipeAnim);
   };
 
+  if (this.facing === 'left') {
+    force = new Phaser.Point(-300, 0);
+  } else if (this.facing === 'right') {
+    force = new Phaser.Point(300, 0);
+  } else if (this.facing === 'up') {
+    force = new Phaser.Point(0, -300);
+  } else if (this.facing === 'down') {
+    force = new Phaser.Point(0, 300);
+  }
+
 
   if (this.facing === 'left') {
     this.animations.play('swipel', 20, false);
@@ -144,7 +156,10 @@ Entity.Cat.prototype.getMeleeArea = function () {
     this.attacking = false;
   }, this);
 
-  return directions[this.facing];
+  return {
+    area: directions[this.facing],
+    force: force
+  }
 };
 
 Entity.Swipe = function(game, x, y, sprite){
@@ -216,7 +231,7 @@ Entity.Enemy = function(game, x, y, sprite) {
 };
 
 Entity.Enemy.prototype = Object.create(Phaser.Sprite.prototype);
-Entity.Enemy.constructor = Entity.Enemy;
+Entity.Enemy.prototype.constructor = Entity.Enemy;
 
 Entity.Enemy.prototype.setTarget = function(cat) {
   this.target = cat;
@@ -226,7 +241,10 @@ Entity.Enemy.prototype.update = function() {
   if (this.updatePathDue) { 
     this.setNewPathToTarget(this.nextPosition); 
   }
-  this.move();
+
+  if (!this.disabled) {
+   this.move();
+  }
 
   this.facing = this.body.velocity.x > 0 ? 'right' : 'left';
   this.animate();
@@ -326,8 +344,11 @@ Entity.Enemy.prototype.animate = function () {
   }
 };
 
-Entity.Enemy.prototype.render = function () {
-  this.game.debug.geom(this.rect, 'rgba(0,0,255,0.3)')
+Entity.Enemy.prototype.knockBack = function(force) {
+  this.disabled = true;
+  this.body.velocity = force;
+  this.tint = 0x330000;
 }
+
 
 module.exports = Entity;

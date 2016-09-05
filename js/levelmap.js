@@ -84,4 +84,11 @@ LevelMap.prototype.getPixelXY = function(tileCoord){
   return new Phaser.Point(x,y);
 };
 
+LevelMap.prototype.getBoundsFromPoint = function(point){
+  var x = Math.floor(point.x / this.tileWidth) * 32;
+  var y = Math.floor(point.y / this.tileHeight) * 32;
+
+  return new Phaser.Rectangle(x, y, this.tileWidth, this.tileHeight);
+}
+
 module.exports = LevelMap;

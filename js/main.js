@@ -34,8 +34,6 @@ MainState.prototype = {
 
     this.hud = this.addHud();
 
-
-
     // Controls 
     this.game.ui = {};
     this.game.ui.cursors = this.game.input.keyboard.createCursorKeys();
@@ -141,9 +139,10 @@ MainState.prototype = {
   processAttack: function (attack) {
     switch (attack.type) {
       case 'melee':
-        this.rectangle = attack.area;
+        this.rectangle = attack.properties.area;
         this.enemiesGroup.forEachAlive(function(enemy){
-          if (attack.area.intersects(enemy.getBounds().offset(this.game.camera.x, this.game.camera.y))) {
+          if (attack.properties.area.intersects(this.getCameraRelativeBounds(enemy))) {
+            enemy.knockBack(attack.properties.force);
             this.game.time.events.add(300, function(){
               this.playerScore += enemy.pointsValue;
               enemy.kill();
@@ -156,6 +155,10 @@ MainState.prototype = {
         this.shoot();
         break;
     }
+  },
+
+  getCameraRelativeBounds: function(obj) {
+    return obj.getBounds().offset(this.game.camera.x, this.game.camera.y);
   },
 
   powerUp: function(cat, powerup) {
@@ -193,7 +196,8 @@ MainState.prototype = {
 
         enemy = Object.create(null);
         enemy.x = squad.x === 'left' ? 0 : 'now';
-        enemy.y = squad.y === 'rnd' ? this.game.rnd.integerInRange(78,272) : squad.y;
+        enemy.y = squad.y === 'rnd' ? this.game.rnd.integerInRange(2,7) * 32 : 
+          squad.y[n] * 32 + 16;
         enemy.type = squad.type;
         enemy.timeout = squad.interval * n;
         spawnCallback(enemy).bind(this)(nowOptions);
@@ -220,6 +224,7 @@ MainState.prototype = {
       bullet.onHit();
       if (target) {
         target.body.enable = false;
+        target.tint = 0xFFFF00;
         setTimeout(function(){
           target.kill();
         }, 100);
@@ -239,8 +244,6 @@ MainState.prototype = {
   },
 
   render: function(){
-    
-
     // function renderGroup(member) {    
     //   this.game.debug.body(member);
     // }
@@ -249,15 +252,6 @@ MainState.prototype = {
     // this.game.debug.geom(this.rectangle, 'rgba(0,0,255,0.5)');
     
   },
-
-  // allEnemyTiles: function(){
-  //   var tiles = []
-  //   this.enemiesGroup.forEachAlive(function(enemy){
-  //     tiles.push(this.map.getTileXY(enemy));
-  //   }, this); 
-  //   return tiles;
-  // }
-  // }
 };
 
 module.exports = MainState;
