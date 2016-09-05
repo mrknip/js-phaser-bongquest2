@@ -30,6 +30,11 @@ Entity.Cat = function(game, x,y, sprite) {
 Entity.Cat.prototype = Object.create(Phaser.Sprite.prototype);
 Entity.Cat.constructor = Entity.Cat;
 
+Entity.Cat.prototype.update = function () {
+    this.move(this.game.ui.cursors);
+    this.animate();
+};
+
 Entity.Cat.prototype.move = function (cursors) {
   if (this.attacking) { 
     this.body.velocity.x = 0;
@@ -84,6 +89,57 @@ Entity.Cat.prototype.animate = function () {
   }
 };
 
+Entity.Cat.prototype.attack = function() {
+  if (this.attacking) { return; }
+  console.log(this.attackMode);
+  switch (this.attackMode) {
+    case 'melee':
+      var area = this.getMeleeArea();
+      return {type: 'melee', area: area};
+    case 'ranged':
+      return {type: 'ranged', bulletType: 'boring'};
+  };
+}
+
+Entity.Cat.prototype.getMeleeArea = function () {
+  if (this.attacking === true) { return null; };
+
+  this.attacking = true;
+
+  var meleeFront = 32;
+  var meleeSide = 42;
+  var directions = {
+    'left':  new Phaser.Rectangle(this.x - meleeFront - this.body.width / 2, 
+                                  this.y - meleeSide / 2, 
+                                  meleeFront, meleeSide),
+    'right': new Phaser.Rectangle(this.x + this.body.width / 2, 
+                                  this.y - meleeSide / 2, 
+                                  meleeFront, meleeSide),
+    'up':    new Phaser.Rectangle(this.x - meleeSide / 2, 
+                                  this.y - meleeFront - this.body.height / 2,
+                                  meleeSide, meleeFront),
+    'down':  new Phaser.Rectangle(this.x - meleeSide / 2, 
+                                  this.y + this.body.height / 2, 
+                                  meleeSide, meleeFront),
+  };
+  
+  if (this.facing === 'left') {
+    this.animations.play('swipel', 20, false);
+  } else if (this.facing === 'right') {
+    this.animations.play('swiper', 20, false);
+  } else if (this.facing === 'up') {
+    this.animations.play('swipeu', 15, false);
+  } else if (this.facing === 'down') {
+    this.animations.play('swiped', 15, false);
+  }
+
+  this.game.time.events.add(300, function(){
+    this.attacking = false;
+  }, this);
+
+  return directions[this.facing];
+};
+
 /**
 *
 * ENEMY - base class
@@ -97,7 +153,7 @@ Entity.Enemy = function(game, x, y, sprite) {
   this.moving = true;
   this.body.setSize(24, 24, 4, 4);
 
-  this.speed = game.rnd.integerInRange(50, 150);
+  this.speed = game.rnd.integerInRange(20, 50);
  
   this.animations.add('walkl', [0,1,2,3,4]);
   this.animations.add('walkr', [6,7,8,9,10]);
@@ -133,6 +189,7 @@ Entity.Enemy.prototype.reachedPosition = function (pos) {
   return distance < 1.5;
 };
 
+
 Entity.Enemy.prototype.setNewPathToTarget = function(pathStart) {
   var start;
   this.updatePathDue = false;
@@ -140,7 +197,7 @@ Entity.Enemy.prototype.setNewPathToTarget = function(pathStart) {
       var path = [];
       if (res !== null) {
         res.forEach(function(point){
-          path.push(this.game.pathfinder.getPixelFromCoord(point));
+          path.push(this.game.pathfinder.getPixelXY(point));
         }.bind(this));
       }
       this.setPath(path);
@@ -155,14 +212,17 @@ Entity.Enemy.prototype.setNewPathToTarget = function(pathStart) {
 
   this.game.pathfinder.calculatePath();
 
-  this.game.time.events.add(Phaser.Timer.SECOND * 1, function(){
-    if (this.alive) {
-      this.updatePathDue = true;
-      this.setNewPathToTarget(this.nextPosition);  
-    }
-  }, this);
+    // this.game.time.events.add(Phaser.Timer.SECOND * 1, function(){
+    //   if (this.alive) {
+    //     this.updatePathDue = true;
+    //     this.setNewPathToTarget(this.nextPosition);  
+    //   }
+    // }, this);
 };
 
+/**
+* @param path {array}
+*/
 Entity.Enemy.prototype.setPath = function (path) {
   if (path !== null) {
     this.path = path;

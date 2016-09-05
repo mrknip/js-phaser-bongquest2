@@ -36,12 +36,12 @@
       "frameWidth": 32,
       "frameHeight": 32
     },
-    "tree":
+    "treetiles":
     {
       "type": "image",
       "source": "tree.png"
     },
-    "tiles":
+    "grassytiles":
     {
       "type": "image",
       "source": "grassy.png"

@@ -2,27 +2,17 @@
 
 var Entity = require('./entity.js');
 var Bullet = require('./bullet.js');
+var LevelMap = require('./levelmap.js');
 
 var MainState = MainState || {};
 
 // Don't forget hack in Phaser getBounds (87780)
 
 MainState = function () {
-  // this.map;
-  // this.layer;
-
-  // this.bulletDelaySet;
-  // this.attackDelaySet;
-  // this.spawnDue;
-  // this.nextWave;
-
-  // this.playerScore;
-  // this.playerScoreText;
-
+  Phaser.State.call(this);
 };
 
 MainState.prototype = {
-
   init: function(levelData) {
     this.levelData = levelData;
   },
@@ -39,11 +29,25 @@ MainState.prototype = {
     this.game.physics.startSystem(Phaser.Physics.ARCADE);
     this.reset();
     
-    // Add tilemap, bg and collision layer
-    this.loadLevel('level1');
+    this.map = new LevelMap(this.game, 'level1');
+    this.map.build(this.addGameObjects, this);
+
+    this.hud = this.addHud();
+
+    // Controls 
+    this.game.ui = {};
+    this.game.ui.cursors = this.game.input.keyboard.createCursorKeys();
+    this.game.ui.shootButton = this.game.input.keyboard.addKey(Phaser.Keyboard.CONTROL);
     
-    // Add actors
+    this.game.pathfinder = this.game.plugins.add(
+      Phaser.Plugin.PathFinderPlugin, 
+      this.map.collisionLayer
+    );
+  },
+
+  addGameObjects: function() {
     this.cat = this.addCat(this.game, 64, 160, 'bongo');
+    this.cat.currentTile = this.map.getTileXY(this.cat);
 
     this.bulletGroup = this.game.add.group();
     this.enemiesGroup = this.game.add.group();
@@ -52,51 +56,8 @@ MainState.prototype = {
     this.testPowerUp = this.game.add.sprite(832  , 96, 'bullet');
     this.game.physics.enable(this.testPowerUp);
 
-    // Add triggers
-    this.addTriggers();
-    
-    // Add foreground
-    this.foreground = this.map.createLayer('trees');
-    // Controls 
-    this.cursors = this.game.input.keyboard.createCursorKeys();
-    this.shootButton = this.game.input.keyboard.addKey(Phaser.Keyboard.CONTROL);
-    
-    this.game.pathfinder = this.game.plugins.add(Phaser.Plugin.PathFinderPlugin, this.collisionLayer);
-
-    this.game.camera.follow(this.cat);
-    this.playerScoreText = this.game.add.text(16, 16, this.playerScore, {font: 'ubuntu 16px', fill: '#fff'});
-    this.playerScoreText.fixedToCamera = true;
-  },
-
-  addTriggers: function(){
-    this.map.objects.triggers.forEach(function(data){
-      var trigger, property;
-
-      trigger = this.game.add.sprite(data.x, data.y, null);
-      this.game.physics.arcade.enable(trigger);
-      trigger.body.setSize(data.width, data.height, 0 ,0);
-
-      for (property in data.properties) {
-        if (data.properties.hasOwnProperty(property)) {
-          trigger[property] = data.properties[property];
-        }
-      }
-      
-      this.triggerGroup.add(trigger);    
-    }.bind(this));
-  },
-
-  loadLevel: function(level) {
-    this.map = this.game.add.tilemap(level);
-    this.map.addTilesetImage('grassy', 'tiles');
-    this.map.addTilesetImage('tree', 'tree');
-    this.layer = this.map.createLayer('background');
-    this.layer.resizeWorld();
-    this.bgObjLayer = this.map.createLayer('bg objects');
-
-    this.collisionLayer = this.map.createLayer('collisionLayer');
-    
-    this.map.setCollisionBetween(0,200,true, this.collisionLayer);
+    // Would still be nice to fit this into map manager self-building process, with event handlers
+    this.map.addTriggers(this.triggerGroup);
   },
 
   addCat: function(game, x,y, sprite) {
@@ -120,27 +81,62 @@ MainState.prototype = {
     return bullet;
   },
 
+  addHud: function () {
+    this.playerScoreText = this.game.add.text(16, 16, this.playerScore, {font: 'ubuntu 16px', fill: '#fff'});
+    this.playerScoreText.fixedToCamera = true;
+
+    this.game.camera.follow(this.cat);
+  },
+
   update: function() {
-    this.game.physics.arcade.collide(this.cat, this.collisionLayer);
+    this.game.physics.arcade.collide(this.cat, this.map.collisionLayer);
     this.game.physics.arcade.collide(this.cat, this.enemiesGroup, this.onEnemyTouch, null, this);
-    this.game.physics.arcade.collide(this.enemiesGroup, this.collisionLayer);
+
+    this.game.physics.arcade.collide(this.enemiesGroup, this.map.collisionLayer);
     this.game.physics.arcade.collide(this.bulletGroup, this.enemiesGroup, this.onBulletHit, null, this);
-    this.game.physics.arcade.collide(this.bulletGroup, this.collisionLayer, this.onBulletHit, null, this);
+    this.game.physics.arcade.collide(this.bulletGroup, this.map.collisionLayer, this.onBulletHit, null, this);
 
     this.game.physics.arcade.collide(this.enemiesGroup);
 
     this.game.physics.arcade.overlap(this.cat, this.triggerGroup, this.triggerWave, null, this);
     this.game.physics.arcade.overlap(this.cat, this.testPowerUp, this.powerUp, null, this);
 
-    // Move Player
-    this.cat.move(this.cursors);
-    this.cat.animate();
+    // *****************************
+    // Trying to trim the number of path updates
+    // Where does this live?
 
-    if (this.shootButton.isDown) { 
-      if (this.cat.attackMode === 'shoot') {
+    var movedTile = new Phaser.Signal()
+    movedTile.add(function(newTile){
+      this.enemiesGroup.forEachAlive(function(enemy){
+        enemy.updatePathDue = true;
+      }, this);
+    }, this);
+
+    if (!this.cat.currentTile.equals(this.map.getTileXY(this.cat))){
+      this.cat.currentTile = this.map.getTileXY(this.cat);
+      movedTile.dispatch(this.cat.currentTile)
+    }
+
+    // ************************
+
+    // Handle player attacks
+    if (this.game.ui.shootButton.isDown) { 
+      var attack = this.cat.attack();
+      console.log(attack);
+      if (attack === undefined) {
+        return;
+      } else if (attack.type && attack.type === 'melee') {
+        this.enemiesGroup.forEachAlive(function(enemy){
+          if (attack.area.intersects(enemy.getBounds().offset(this.game.camera.x, this.game.camera.y))) {
+            this.game.time.events.add(300, function(){
+              this.playerScore += enemy.pointsValue;
+              enemy.kill();
+            }, this);
+          }
+        }, this);
+      } else if (attack.type && attack.type === 'ranged') {
+        console.log(attack.bulletType)
         this.shoot();
-      } else {
-        this.meleeAttack(this.cat); 
       }
     }
 
@@ -149,7 +145,7 @@ MainState.prototype = {
 
   powerUp: function(cat, powerup) {
     powerup.kill();
-    this.cat.attackMode = 'shoot';
+    this.cat.attackMode = 'ranged';
   },
 
   triggerWave: function(player, trigger) {
@@ -188,7 +184,7 @@ MainState.prototype = {
         spawnCallback(enemy).bind(this)(nowOptions);
       }
 
-    } 
+    }
   },
 
   meleeAttack: function(cat){
@@ -196,7 +192,6 @@ MainState.prototype = {
     
     if (this.attackDelaySet === false) {
       this.attackDelaySet = true;
-
 
       var meleeFront = 32;
       var meleeSide = 42;
@@ -281,13 +276,34 @@ MainState.prototype = {
   },
 
   render: function(){
-    // function renderGroup(member) {    
-    //   this.game.debug.body(member);
-    // }
-    // this.enemiesGroup.forEachAlive(renderGroup, this);
-    // this.game.debug.body(this.cat);
+  //   function renderGroup(member) {    
+  //     this.game.debug.body(member);
+  //   }
+  //   this.enemiesGroup.forEachAlive(renderGroup, this);
+  //   this.game.debug.body(this.cat);
+  //   // function allEnemyTiles(){
+      
+  //   // };
 
-    // this.game.debug.geom(this.rectangle, 'rgba(0,0,255,0.5)');
+  //   var enemyTiles = this.allEnemyTiles();
+
+
+  //   enemyTiles.forEach(function(enemyTile){
+  //     var tileCentre = this.map.getPixelXY(enemyTile); 
+  //     var rectangle = new Phaser.Rectangle(tileCentre.x - 16, tileCentre.y - 16, 32, 32);
+  //     this.game.debug.geom(rectangle, 'rgba(255, 0, 0, 0.5');
+  //   }, this);
+
+  //   // this.game.debug.geom(this.rectangle, 'rgba(0,0,255,0.5)');
+  // },
+
+  // allEnemyTiles: function(){
+  //   var tiles = []
+  //   this.enemiesGroup.forEachAlive(function(enemy){
+  //     tiles.push(this.map.getTileXY(enemy));
+  //   }, this); 
+  //   return tiles;
+  // }
   }
 };
 
